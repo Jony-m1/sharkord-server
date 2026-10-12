@@ -24,6 +24,7 @@ import {
   STORAGE_MIN_SIGNED_URLS_TTL_SECONDS,
   STORAGE_OVERFLOW_ACTION,
   STORAGE_QUOTA,
+  STORAGE_UNLIMITED_FILE_SIZE,
   StorageOverflowAction,
   type TStorageSettings
 } from '@sharkord/shared';
@@ -216,10 +217,15 @@ const Storage = memo(() => {
           disabled={!values.storageUploadEnabled}
           onChange={(value) => onChange('storageUploadMaxFileSize', value)}
           preview={
-            <>
-              {labels.storageUploadMaxFileSize.value}{' '}
-              {labels.storageUploadMaxFileSize.unit}
-            </>
+            Number(values.storageUploadMaxFileSize) ===
+            STORAGE_UNLIMITED_FILE_SIZE ? (
+              t('unlimitedLabel')
+            ) : (
+              <>
+                {labels.storageUploadMaxFileSize.value}{' '}
+                {labels.storageUploadMaxFileSize.unit}
+              </>
+            )
           }
           presets={MAX_FILE_SIZE_PRESETS}
         />

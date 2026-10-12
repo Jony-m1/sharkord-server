@@ -27,7 +27,8 @@ export const STORAGE_QUOTA = 100 * 1024 * 1024 * 1024; // 100GB
 export const STORAGE_MIN_QUOTA = 1 * 1024 * 1024 * 1024; // 1GB
 export const STORAGE_MAX_QUOTA = 1 * 1024 * 1024 * 1024 * 1024; // 1TB
 
-export const STORAGE_MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
+export const STORAGE_MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB, the slider's top end
+export const STORAGE_UNLIMITED_FILE_SIZE = 0; // no max file size
 export const STORAGE_MIN_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 export const STORAGE_MAX_QUOTA_PER_USER = 100 * 1024 * 1024 * 1024; // 100GB
 export const STORAGE_MIN_QUOTA_PER_USER = 0; // unlimited

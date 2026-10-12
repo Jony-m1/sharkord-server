@@ -1,4 +1,8 @@
-import type { TFile, TPluginStorageUsage } from '@sharkord/shared';
+import {
+  exceedsMaxFileSize,
+  type TFile,
+  type TPluginStorageUsage
+} from '@sharkord/shared';
 import { desc, eq, sql, sum } from 'drizzle-orm';
 import { db } from '..';
 import { attachFileToken } from '../../helpers/files-crypto';
@@ -8,7 +12,7 @@ import { getSettings } from './server';
 const getExceedingOldFiles = async (newFileSize: number) => {
   const { storageQuota, storageUploadMaxFileSize } = await getSettings();
 
-  if (newFileSize > storageUploadMaxFileSize) {
+  if (exceedsMaxFileSize(newFileSize, storageUploadMaxFileSize)) {
     throw new Error('File size exceeds the maximum allowed file size');
   }
 
