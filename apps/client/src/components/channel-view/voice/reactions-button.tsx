@@ -4,7 +4,6 @@ import {
   PICKER_PANEL_CONTENT_CLASS
 } from '@/components/emoji-picker/picker-panel';
 import type { TEmojiItem } from '@/components/tiptap-input/helpers';
-import { useIsShiftHeld } from '@/features/app/hooks';
 import { QUICK_VOICE_REACTION_EMOJIS } from '@/features/server/voice/statics';
 import { getTRPCClient } from '@/lib/trpc';
 import { getTrpcError } from '@sharkord/shared';
@@ -51,14 +50,10 @@ const ReactionsButton = memo(() => {
   const { t } = useTranslation('common');
   const [open, setOpen] = useState(false);
   const [showAllEmojis, setShowAllEmojis] = useState(false);
-  const isShiftHeld = useIsShiftHeld();
 
   const sendReaction = useCallback(
     async (emoji: string) => {
-      // holding shift keeps the picker open to send several reactions in a row
-      if (!isShiftHeld) {
-        setOpen(false);
-      }
+      setOpen(false);
 
       const trpc = getTRPCClient();
 
@@ -68,7 +63,7 @@ const ReactionsButton = memo(() => {
         toast.error(getTrpcError(error, t('failedSendVoiceReaction')));
       }
     },
-    [t, isShiftHeld]
+    [t]
   );
 
   const handlePickerSelect = useCallback(
@@ -104,12 +99,7 @@ const ReactionsButton = memo(() => {
           </Button>
         </PopoverTrigger>
       </Tooltip>
-      <PopoverContent
-        className={contentClass}
-        align="center"
-        sideOffset={12}
-        data-shift-select
-      >
+      <PopoverContent className={contentClass} align="center" sideOffset={12}>
         {showAllEmojis ? (
           <EmojiPickerPanel onEmojiSelect={handlePickerSelect} />
         ) : (
