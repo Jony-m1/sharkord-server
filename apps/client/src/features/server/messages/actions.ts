@@ -16,7 +16,7 @@ import {
   TYPING_MS,
   type TJoinedMessage
 } from '@sharkord/shared';
-import { markChannelAsRead } from '../actions';
+import { jumpToMessage, markChannelAsRead } from '../actions';
 import {
   channelByIdSelector,
   isChannelTextVisibleByIdSelector
@@ -25,6 +25,7 @@ import { pluginMetadataByIdSelector } from '../plugins/selectors';
 import { serverSliceActions } from '../slice';
 import { SoundType } from '../types';
 import { ownUserIdSelector, userByIdSelector } from '../users/selectors';
+import { shouldSendMessageNotification } from './helpers';
 import { threadMessagesMapSelector } from './selectors';
 
 const sendBrowserNotification = (
@@ -70,7 +71,24 @@ const sendBrowserNotification = (
   // a preview of the picture where the platform shows one; not in the dom typings yet
   const image = imageFile ? getFileUrl(imageFile) : undefined;
 
-  new Notification(title, { body, icon, image } as NotificationOptions);
+  const notification = new Notification(title, {
+    body,
+    icon,
+    image
+  } as NotificationOptions);
+
+  notification.onclick = () => {
+    window.focus();
+
+    // a thread reply is not in the channel itself, its parent message is
+    jumpToMessage({
+      channelId,
+      messageId: message.parentMessageId ?? message.id,
+      isDm
+    });
+
+    notification.close();
+  };
 };
 
 const typingTimeouts: { [key: string]: NodeJS.Timeout } = {};
@@ -158,7 +176,8 @@ export const addMessages = (
       channelId
     );
 
-    const isWindowHidden = document?.hidden;
+    // a window that is open but behind other windows is not hidden, only unfocused
+    const isWindowHidden = document.hidden || !document.hasFocus();
 
     if (!isFromOwnUser) {
       const isThreadReply = !!targetMessage.parentMessageId;
@@ -177,33 +196,22 @@ export const addMessages = (
       // only send browser notifications if the user is not currently viewing this channel
       if (!isChannelTextVisible || isWindowHidden) {
         const channel = channelByIdSelector(state, channelId);
-        const isDmChannel = !!channel?.isDm;
-        const hasDmNotificationsEnabled =
-          browserNotificationsForDmsSelector(state);
-        const hasRepliesNotificationsEnabled =
-          browserNotificationsForRepliesSelector(state);
+        const isDm = !!channel?.isDm;
 
-        if (isDmChannel && hasDmNotificationsEnabled) {
-          sendBrowserNotification(targetMessage, channelId, true);
-        } else if (notificationsForMentionsOnly) {
-          const isMentioned = hasMention(
-            targetMessage.content ?? null,
-            ownUserId
-          );
-
-          if (isMentioned) {
-            sendBrowserNotification(targetMessage, channelId);
-          }
-        } else if (hasBrowserNotificationsEnabled) {
-          sendBrowserNotification(targetMessage, channelId);
-        } else if (hasRepliesNotificationsEnabled) {
-          const isReplyToOwnMessage =
+        const shouldNotify = shouldSendMessageNotification({
+          isDm,
+          isMentioned: hasMention(targetMessage.content ?? null, ownUserId),
+          isReplyToOwnMessage:
             !!targetMessage.replyToMessageId &&
-            targetMessage.replyTo?.userId === ownUserId;
+            targetMessage.replyTo?.userId === ownUserId,
+          allMessages: hasBrowserNotificationsEnabled,
+          mentionsOnly: notificationsForMentionsOnly,
+          dms: browserNotificationsForDmsSelector(state),
+          replies: browserNotificationsForRepliesSelector(state)
+        });
 
-          if (isReplyToOwnMessage) {
-            sendBrowserNotification(targetMessage, channelId);
-          }
+        if (shouldNotify) {
+          sendBrowserNotification(targetMessage, channelId, isDm);
         }
       }
     }
