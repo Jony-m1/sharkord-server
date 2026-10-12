@@ -9,6 +9,8 @@ import { store } from '@/features/store';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { playSound } from '@/helpers/sounds';
 import {
+  FileCategory,
+  getFileCategory,
   getPlainTextFromHtml,
   hasMention,
   TYPING_MS,
@@ -52,10 +54,23 @@ const sendBrowserNotification = (
     ? `${authorName} (DM)`
     : `${authorName} in #${channel?.name ?? 'unknown'}`;
 
-  const body = textContent ? textContent : 'Sent an attachment';
-  const icon = user?.avatar ? getFileUrl(user.avatar) : undefined;
+  const imageFile = message.files?.find(
+    (file) => getFileCategory(file.extension) === FileCategory.IMAGE
+  );
 
-  new Notification(title, { body, icon });
+  let body = 'Sent an attachment';
+
+  if (textContent) {
+    body = textContent;
+  } else if (imageFile) {
+    body = 'Sent an image';
+  }
+
+  const icon = user?.avatar ? getFileUrl(user.avatar) : undefined;
+  // a preview of the picture where the platform shows one; not in the dom typings yet
+  const image = imageFile ? getFileUrl(imageFile) : undefined;
+
+  new Notification(title, { body, icon, image } as NotificationOptions);
 };
 
 const typingTimeouts: { [key: string]: NodeJS.Timeout } = {};
