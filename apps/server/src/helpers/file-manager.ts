@@ -47,11 +47,16 @@ const OPTIMIZABLE_IMAGE_EXTENSIONS = new Set([
   '.avif'
 ]);
 
+// streamed rather than read whole, so an upload never has to fit in memory
 const md5File = async (path: string): Promise<string> => {
-  const file = await fs.readFile(path);
   const hash = createHash('md5');
+  const stream = Bun.file(
+    path
+  ).stream() as unknown as AsyncIterable<Uint8Array>;
 
-  hash.update(file);
+  for await (const chunk of stream) {
+    hash.update(chunk);
+  }
 
   return hash.digest('hex');
 };

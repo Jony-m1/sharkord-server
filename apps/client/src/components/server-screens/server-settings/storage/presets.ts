@@ -1,3 +1,5 @@
+import { STORAGE_UNLIMITED_FILE_SIZE } from '@sharkord/shared';
+
 const MEGABYTE = 1024 * 1024;
 const FILE_SIZE_STEP = 5 * 1024 * 1024; // 5MB
 
@@ -8,6 +10,7 @@ const QUOTA_PRESETS = [
 ];
 
 const MAX_FILE_SIZE_PRESETS = [
+  { label: 'Unlimited', value: STORAGE_UNLIMITED_FILE_SIZE },
   { label: '25 MB', value: 25 * MEGABYTE },
   { label: '100 MB', value: 100 * MEGABYTE },
   { label: '500 MB', value: 500 * MEGABYTE },
@@ -51,8 +54,8 @@ export {
   FILE_SIZE_STEP,
   MAX_AVATAR_SIZE_PRESETS,
   MAX_BANNER_SIZE_PRESETS,
-  MAX_FILES_PER_MESSAGE_PRESETS,
   MAX_FILE_SIZE_PRESETS,
+  MAX_FILES_PER_MESSAGE_PRESETS,
   MEGABYTE,
   QUOTA_BY_USER_PRESETS,
   QUOTA_PRESETS,
