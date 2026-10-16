@@ -23,6 +23,13 @@ const zRateLimiter = z.object({
   windowMs: z.coerce.number().int().positive()
 });
 
+const zFailedAttemptsLimiter = z.object({
+  maxFailures: z.coerce.number().int().positive(),
+  windowMs: z.coerce.number().int().positive(),
+  blockMs: z.coerce.number().int().positive(),
+  maxBlockMs: z.coerce.number().int().positive()
+});
+
 const zConfig = z.object({
   server: z.object({
     host: z.string().trim(),
@@ -68,10 +75,12 @@ const zConfig = z.object({
     maxBitrate: z.coerce.number().int().positive()
   }),
   rateLimiters: z.object({
+    enabled: z.coerce.boolean(),
     sendAndEditMessage: zRateLimiter,
     joinVoiceChannel: zRateLimiter,
     moveMembers: zRateLimiter,
     login: zRateLimiter,
+    loginLockout: zFailedAttemptsLimiter,
     joinServer: zRateLimiter,
     upload: zRateLimiter,
     search: zRateLimiter,
@@ -129,6 +138,7 @@ const defaultConfig: TConfig = {
     maxBitrate: 30_000_000 // 30 Mbps
   },
   rateLimiters: {
+    enabled: true,
     sendAndEditMessage: {
       maxRequests: 15,
       windowMs: 60_000
@@ -144,6 +154,12 @@ const defaultConfig: TConfig = {
     login: {
       maxRequests: 5,
       windowMs: 60_000
+    },
+    loginLockout: {
+      maxFailures: 20,
+      windowMs: 15 * 60_000,
+      blockMs: 15 * 60_000,
+      maxBlockMs: 24 * 60 * 60_000
     },
     joinServer: {
       maxRequests: 5,
@@ -279,7 +295,8 @@ const envOverridesMap: Record<string, string> = {
   'oidc.disableLocalLogin': 'SHARKORD_OIDC_DISABLE_LOCAL_LOGIN',
   'webRtc.port': 'SHARKORD_WEBRTC_PORT',
   'webRtc.announcedAddress': 'SHARKORD_WEBRTC_ANNOUNCED_ADDRESS',
-  'webRtc.maxBitrate': 'SHARKORD_WEBRTC_MAX_BITRATE'
+  'webRtc.maxBitrate': 'SHARKORD_WEBRTC_MAX_BITRATE',
+  'rateLimiters.enabled': 'SHARKORD_RATE_LIMITERS_ENABLED'
 };
 
 // validated again after the overrides, otherwise an env var could put a value
