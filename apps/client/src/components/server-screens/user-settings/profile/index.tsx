@@ -16,6 +16,7 @@ import {
 } from '@sharkord/ui';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { TimeStats } from './time-stats';
 
 type TProfileValues = {
   name: string;
@@ -82,7 +83,11 @@ const Profile = memo(() => {
     values.banner?.previewUrl ?? getFileUrl(ownPublicUser.banner);
 
   return (
-    <SettingsSection title={t('profileTitle')} description={t('profileDesc')}>
+    <SettingsSection
+      title={t('profileTitle')}
+      description={t('profileDesc')}
+      action={<TimeStats />}
+    >
       <div className="flex flex-wrap items-start gap-4">
         <ImagePicker
           label={t('avatarLabel')}

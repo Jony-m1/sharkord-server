@@ -11,7 +11,8 @@
  *
  *   settings          1    server name "Test Server", secret token TEST_SECRET_TOKEN
  *   users             5    1 testowner (owner), 2 testuser (low permissions, used for
- *                          every "lacks permission" case), usera, userb, testmoderator
+ *                          every "lacks permission" case), usera, userb, testmoderator;
+ *                          the owner has 2h online and 30m in calls saved, the others none
  *   roles             4    Owner (id 1), Member, Guest, Moderator
  *   userRoles         5    one per user, plus the moderator's extra role
  *   rolePermissions  32    the default permission sets for the roles above
@@ -235,6 +236,8 @@ const seedTestDb = async (
     avatarId: null,
     bannerId: null,
     bio: null,
+    onlineTimeMs: 2 * 60 * 60 * 1000,
+    voiceTimeMs: 30 * 60 * 1000,
     createdAt: firstStart
   };
 

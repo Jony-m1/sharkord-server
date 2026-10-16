@@ -6,7 +6,7 @@ import {
   ServerEvents,
   type TTempFile
 } from '@sharkord/shared';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import {
@@ -32,6 +32,10 @@ import {
   userRoles,
   users
 } from '../../db/schema';
+import {
+  startOnlineSession,
+  startVoiceSession
+} from '../../helpers/time-tracking';
 import { pubsub } from '../../utils/pubsub';
 
 describe('users router', () => {
@@ -1950,5 +1954,49 @@ describe('users router', () => {
         expect(user).not.toHaveProperty('oidcSub');
       }
     });
+  });
+});
+
+describe('getTimeStats', () => {
+  test('should return the saved totals and the server time', async () => {
+    spyOn(Date, 'now').mockReturnValue(5_000_000);
+
+    const { caller } = await initTest(1);
+
+    // signing in started the online session, which has run for no time yet
+    expect(await caller.users.getTimeStats()).toEqual({
+      onlineTimeMs: 2 * 60 * 60 * 1000,
+      voiceTimeMs: 30 * 60 * 1000,
+      online: true,
+      inVoice: false,
+      serverTime: 5_000_000
+    });
+  });
+
+  test('should include the time of the sessions running now', async () => {
+    const clock = spyOn(Date, 'now').mockReturnValue(5_000_000);
+
+    startOnlineSession(1);
+    startVoiceSession(1);
+    clock.mockReturnValue(5_030_000);
+
+    const { caller } = await initTest(1);
+    const stats = await caller.users.getTimeStats();
+
+    expect(stats.onlineTimeMs).toBe(2 * 60 * 60 * 1000 + 30_000);
+    expect(stats.voiceTimeMs).toBe(30 * 60 * 1000 + 30_000);
+    expect(stats.online).toBe(true);
+    expect(stats.inVoice).toBe(true);
+  });
+
+  test('should return the caller own totals, never another user', async () => {
+    spyOn(Date, 'now').mockReturnValue(5_000_000);
+    startOnlineSession(1);
+
+    const { caller } = await initTest(2);
+    const stats = await caller.users.getTimeStats();
+
+    expect(stats.onlineTimeMs).toBe(0);
+    expect(stats.voiceTimeMs).toBe(0);
   });
 });

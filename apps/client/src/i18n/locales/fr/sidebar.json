@@ -12,6 +12,8 @@
   "userSettings": "Paramètres utilisateur",
   "voiceConnecting": "Connexion en cours...",
   "voiceConnected": "Connecté en vocal",
+  "callTimerOwn": "Votre temps dans l'appel. Cliquez pour la durée de l'appel",
+  "callTimerCall": "Temps depuis le début de l'appel. Cliquez pour votre temps",
   "voiceFailed": "Échec de la connexion",
   "voiceDisconnected": "Déconnecté",
   "disconnectVoice": "Se déconnecter",

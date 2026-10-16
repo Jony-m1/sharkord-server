@@ -12,6 +12,8 @@
   "userSettings": "Настройки пользователя",
   "voiceConnecting": "Подключение...",
   "voiceConnected": "Голосовое соединение",
+  "callTimerOwn": "Ваше время в звонке. Нажмите, чтобы увидеть время звонка",
+  "callTimerCall": "Время с начала звонка. Нажмите, чтобы увидеть ваше время",
   "voiceFailed": "Соединение не удалось",
   "voiceDisconnected": "Отключено",
   "disconnectVoice": "Отключиться",

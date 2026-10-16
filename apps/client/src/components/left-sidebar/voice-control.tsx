@@ -20,6 +20,7 @@ import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ExternalAudioStreams } from '../channel-view/voice/external-audio-streams';
 import { VoiceAudioStreams } from '../channel-view/voice/voice-audio-streams';
+import { CallTimer } from './call-timer';
 import { StatsPopover } from './stats-popover';
 
 const VoiceControl = memo(() => {
@@ -79,6 +80,7 @@ const VoiceControl = memo(() => {
             <span className={cn('text-xs font-medium', connectionInfo.color)}>
               {connectionInfo.text}
             </span>
+            <CallTimer />
           </div>
         </StatsPopover>
 

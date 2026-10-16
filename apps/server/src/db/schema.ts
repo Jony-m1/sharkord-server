@@ -199,6 +199,9 @@ const users = sqliteTable(
     lastLoginAt: integer('last_login_at')
       .notNull()
       .$defaultFn(() => Date.now()),
+    // kept up to date by helpers/time-tracking.ts
+    onlineTimeMs: integer('online_time_ms').notNull().default(0),
+    voiceTimeMs: integer('voice_time_ms').notNull().default(0),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at')
   },

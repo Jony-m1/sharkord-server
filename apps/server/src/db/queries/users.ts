@@ -411,6 +411,17 @@ const getAllUserIds = async (): Promise<number[]> => {
   return results.map((r) => r.id);
 };
 
+const getUserTimeTotals = async (userId: number) =>
+  db
+    .select({
+      onlineTimeMs: users.onlineTimeMs,
+      voiceTimeMs: users.voiceTimeMs
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+    .get();
+
 export {
   getAllUserIds,
   getPublicUserById,
@@ -420,5 +431,6 @@ export {
   getUserByIdentity,
   getUserByOidcSub,
   getUserByToken,
-  getUsers
+  getUsers,
+  getUserTimeTotals
 };

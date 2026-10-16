@@ -167,4 +167,26 @@ const linkOidcSub = async (
     .where(eq(users.id, userId));
 };
 
-export { createUser, invalidateUserSessions, linkOidcSub };
+type TUserTimeEntry = {
+  userId: number;
+  onlineMs: number;
+  voiceMs: number;
+};
+
+const addUserTime = (entries: TUserTimeEntry[]) => {
+  if (entries.length === 0) return;
+
+  db.transaction((tx) => {
+    for (const { userId, onlineMs, voiceMs } of entries) {
+      tx.update(users)
+        .set({
+          onlineTimeMs: sql`${users.onlineTimeMs} + ${onlineMs}`,
+          voiceTimeMs: sql`${users.voiceTimeMs} + ${voiceMs}`
+        })
+        .where(eq(users.id, userId))
+        .run();
+    }
+  });
+};
+
+export { addUserTime, createUser, invalidateUserSessions, linkOidcSub };

@@ -22,6 +22,7 @@ import { categories, users } from '../../db/schema';
 import { getCapabilityAccessRules } from '../../helpers/plugin-capability-access';
 import { safeCompare } from '../../helpers/safe-compare';
 import { shouldAskServerPassword } from '../../helpers/should-ask-server-password';
+import { startOnlineSession } from '../../helpers/time-tracking';
 import { logger } from '../../logger';
 import { pluginManager } from '../../plugins';
 import { eventBus } from '../../plugins/event-bus';
@@ -152,6 +153,8 @@ const joinServerRoute = rateLimitedProcedure(publicProcedure, {
       userId: ctx.user.id,
       ip: connectionInfo?.ip
     });
+
+    startOnlineSession(ctx.user.id);
 
     eventBus.emit('user:joined', {
       userId: ctx.user.id,

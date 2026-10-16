@@ -11,6 +11,7 @@ import {
   onUserLeaveRoute,
   onUserUpdateRoute
 } from './events';
+import { getTimeStatsRoute } from './get-time-stats';
 import { getUserInfoRoute } from './get-user-info';
 import { getUsersRoute } from './get-users';
 import { kickRoute } from './kick';
@@ -27,6 +28,7 @@ export const usersRouter = t.router({
   update: updateUserRoute,
   updatePassword: updatePasswordRoute,
   getInfo: getUserInfoRoute,
+  getTimeStats: getTimeStatsRoute,
   getAll: getUsersRoute,
   kick: kickRoute,
   ban: banRoute,

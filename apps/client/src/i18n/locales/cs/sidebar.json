@@ -12,6 +12,8 @@
   "userSettings": "Uživatelská nastavení",
   "voiceConnecting": "Připojování...",
   "voiceConnected": "Hlasové připojení navázáno",
+  "callTimerOwn": "Váš čas v hovoru. Klikněte pro čas hovoru",
+  "callTimerCall": "Čas od začátku hovoru. Klikněte pro váš čas",
   "voiceFailed": "Připojení selhalo",
   "voiceDisconnected": "Odpojeno",
   "disconnectVoice": "Odpojit se",

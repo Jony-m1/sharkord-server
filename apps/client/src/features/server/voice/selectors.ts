@@ -20,6 +20,15 @@ export const voiceChannelStateSelector = (
   channelId: number
 ) => state.server.voiceMap[channelId];
 
+export const callStartedAtSelector = (state: IRootState, channelId: number) =>
+  state.server.voiceMap[channelId]?.startedAt;
+
+export const callJoinedAtSelector = (
+  state: IRootState,
+  channelId: number,
+  userId: number
+) => state.server.voiceMap[channelId]?.joinedAt?.[userId];
+
 export const voiceChannelExternalStreamsSelector = (
   state: IRootState,
   channelId: number

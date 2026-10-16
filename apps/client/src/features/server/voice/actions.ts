@@ -33,7 +33,9 @@ import { VOICE_REACTION_DURATION_MS } from './statics';
 export const addUserToVoiceChannel = (
   userId: number,
   channelId: number,
-  voiceState: TVoiceUserState
+  voiceState: TVoiceUserState,
+  joinedAt?: number,
+  startedAt?: number
 ): void => {
   const state = store.getState();
   const ownUserId = ownUserIdSelector(state);
@@ -43,7 +45,9 @@ export const addUserToVoiceChannel = (
     serverSliceActions.addUserToVoiceChannel({
       userId,
       channelId,
-      state: voiceState
+      state: voiceState,
+      joinedAt,
+      startedAt
     })
   );
 

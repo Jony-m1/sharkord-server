@@ -1,6 +1,7 @@
 import { ServerEvents, StreamKind } from '@sharkord/shared';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import type { Consumer, Producer } from 'mediasoup/types';
+import { getUserTimeStats } from '../../helpers/time-tracking';
 import { eventBus } from '../../plugins/event-bus';
 import { pubsub } from '../../utils/pubsub';
 import { EXTERNAL_STREAM_ID_BASE, VoiceRuntime } from '../voice';
@@ -299,5 +300,75 @@ describe('VoiceRuntime producer events', () => {
         producerId: first.id
       }
     ]);
+  });
+});
+
+describe('VoiceRuntime call times', () => {
+  test('should start the call with its first user and keep that start as others join', async () => {
+    const clock = spyOn(Date, 'now').mockReturnValue(1_000_000);
+    const runtime = createRuntime();
+
+    runtime.addUser(7, { micMuted: false, soundMuted: false });
+    clock.mockReturnValue(1_050_000);
+    runtime.addUser(8, { micMuted: false, soundMuted: false });
+
+    expect(VoiceRuntime.getVoiceMap()[runtime.id]).toMatchObject({
+      startedAt: 1_000_000,
+      joinedAt: { 7: 1_000_000, 8: 1_050_000 }
+    });
+
+    await runtime.destroy();
+  });
+
+  test('should keep the call going while anyone is left and end it with the last user', async () => {
+    const clock = spyOn(Date, 'now').mockReturnValue(1_000_000);
+    const runtime = createRuntime();
+
+    runtime.addUser(7, { micMuted: false, soundMuted: false });
+    runtime.addUser(8, { micMuted: false, soundMuted: false });
+    runtime.removeUser(7);
+
+    expect(runtime.getState().startedAt).toBe(1_000_000);
+
+    runtime.removeUser(8);
+
+    expect(runtime.getState().startedAt).toBeUndefined();
+
+    clock.mockReturnValue(2_000_000);
+    runtime.addUser(8, { micMuted: false, soundMuted: false });
+
+    // a new call starts from its own first user
+    expect(runtime.getState().startedAt).toBe(2_000_000);
+
+    await runtime.destroy();
+
+    expect(runtime.getState().startedAt).toBeUndefined();
+  });
+
+  test('should count the time of each user in the call', async () => {
+    const clock = spyOn(Date, 'now').mockReturnValue(1_000_000);
+    const runtime = createRuntime();
+
+    runtime.addUser(2, { micMuted: false, soundMuted: false });
+
+    expect((await getUserTimeStats(2)).inVoice).toBe(true);
+
+    clock.mockReturnValue(1_120_000);
+    runtime.removeUser(2);
+
+    expect(await getUserTimeStats(2)).toMatchObject({
+      voiceTimeMs: 120_000,
+      inVoice: false
+    });
+
+    runtime.addUser(2, { micMuted: false, soundMuted: false });
+    clock.mockReturnValue(1_180_000);
+    await runtime.destroy();
+
+    // closing the channel ends the calls of the users still in it
+    expect(await getUserTimeStats(2)).toMatchObject({
+      voiceTimeMs: 180_000,
+      inVoice: false
+    });
   });
 });

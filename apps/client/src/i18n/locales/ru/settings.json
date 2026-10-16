@@ -22,6 +22,8 @@
   "categorySettingsTitle": "Настройки категории",
   "profileTitle": "Ваш профиль",
   "profileDesc": "Обновите здесь свою личную информацию и настройки.",
+  "totalTimeOnSharkord": "Всего времени в Sharkord",
+  "totalTimeInCall": "Всего времени в звонках",
   "usernameLabel": "Имя пользователя",
   "usernamePlaceholder": "Имя пользователя",
   "bioLabel": "Био",

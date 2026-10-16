@@ -100,12 +100,15 @@ const joinVoiceRoute = rateLimitedProcedure(protectedProcedure, {
     if (movedByModerator) consumeVoiceMoveGrant(ctx.user.id);
 
     const state = runtime.getUserState(ctx.user.id);
+    const joinedAt = runtime.getUser(ctx.user.id)?.joinedAt ?? Date.now();
 
     ctx.currentVoiceChannelId = channel.id;
     ctx.pubsub.publish(ServerEvents.USER_JOIN_VOICE, {
       channelId: input.channelId,
       userId: ctx.user.id,
-      state
+      state,
+      joinedAt,
+      startedAt: runtime.getState().startedAt ?? joinedAt
     });
 
     logger.info('%s joined voice channel %s', ctx.user.name, channel.name);

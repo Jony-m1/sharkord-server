@@ -19,6 +19,7 @@ import type {
   WebRtcTransport
 } from 'mediasoup/types';
 import { config } from '../config';
+import { endVoiceSession, startVoiceSession } from '../helpers/time-tracking';
 import { logger } from '../logger';
 import { eventBus } from '../plugins/event-bus';
 import {
@@ -180,16 +181,17 @@ class VoiceRuntime {
     const map: TVoiceMap = {};
 
     voiceRuntimes.forEach((runtime, channelId) => {
+      const state = runtime.getState();
+
       map[channelId] = {
-        users: {}
+        users: {},
+        joinedAt: {},
+        startedAt: state.startedAt
       };
 
-      runtime.getState().users.forEach((user) => {
-        if (!map[channelId]) {
-          map[channelId] = { users: {} };
-        }
-
-        map[channelId].users[user.userId] = user.state;
+      state.users.forEach((user) => {
+        map[channelId]!.users[user.userId] = user.state;
+        map[channelId]!.joinedAt![user.userId] = user.joinedAt;
       });
     });
 
@@ -365,8 +367,11 @@ class VoiceRuntime {
     const remainingUsers = this.state.users;
 
     this.state.users = [];
+    this.state.startedAt = undefined;
 
     remainingUsers.forEach(({ userId }) => {
+      endVoiceSession(userId);
+
       pubsub.publish(ServerEvents.USER_LEAVE_VOICE, {
         channelId: this.id,
         userId
@@ -405,13 +410,21 @@ class VoiceRuntime {
   ) => {
     if (this.getUser(userId)) return;
 
+    const now = Date.now();
+
+    // the first user in starts the call
+    if (this.state.users.length === 0) this.state.startedAt = now;
+
     this.state.users.push({
       userId,
       state: {
         ...defaultUserState,
         ...state
-      }
+      },
+      joinedAt: now
     });
+
+    startVoiceSession(userId);
 
     eventBus.emit('user:joined_voice', {
       userId: userId,
@@ -421,6 +434,11 @@ class VoiceRuntime {
 
   public removeUser = (userId: number) => {
     this.state.users = this.state.users.filter((u) => u.userId !== userId);
+
+    // the last user out ends the call
+    if (this.state.users.length === 0) this.state.startedAt = undefined;
+
+    endVoiceSession(userId);
 
     this.cleanupUserResources(userId);
 

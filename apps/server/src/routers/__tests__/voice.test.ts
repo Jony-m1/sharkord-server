@@ -5,7 +5,7 @@ import {
   ServerEvents,
   StreamKind
 } from '@sharkord/shared';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import { initTest } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
@@ -918,6 +918,74 @@ describe('voice producer subscriptions', () => {
       expect(received).toEqual([]);
     } finally {
       subscription.unsubscribe();
+    }
+  });
+});
+
+describe('voice join call times', () => {
+  test('should tell everyone when the user joined and when the call started', async () => {
+    const clock = spyOn(Date, 'now').mockReturnValue(1_000_000);
+    const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+    await runtime.init();
+
+    // someone already in the call started it
+    runtime.addUser(3, { micMuted: false, soundMuted: false });
+    clock.mockReturnValue(1_300_000);
+
+    const events: { userId: number; joinedAt: number; startedAt: number }[] =
+      [];
+    const subscription = pubsub
+      .subscribe(ServerEvents.USER_JOIN_VOICE)
+      .subscribe({ next: (event) => events.push(event) });
+
+    try {
+      const { caller } = await initTest(1);
+
+      await caller.voice.join({
+        channelId: VOICE_CHANNEL_ID,
+        state: { micMuted: false, soundMuted: false }
+      });
+
+      expect(events).toEqual([
+        expect.objectContaining({
+          userId: 1,
+          joinedAt: 1_300_000,
+          startedAt: 1_000_000
+        })
+      ]);
+    } finally {
+      subscription.unsubscribe();
+      await runtime.destroy();
+    }
+  });
+
+  test('should start the call with the user who joins an empty channel', async () => {
+    spyOn(Date, 'now').mockReturnValue(2_000_000);
+    const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+    await runtime.init();
+
+    const events: { joinedAt: number; startedAt: number }[] = [];
+    const subscription = pubsub
+      .subscribe(ServerEvents.USER_JOIN_VOICE)
+      .subscribe({ next: (event) => events.push(event) });
+
+    try {
+      const { caller } = await initTest(1);
+
+      await caller.voice.join({
+        channelId: VOICE_CHANNEL_ID,
+        state: { micMuted: false, soundMuted: false }
+      });
+
+      expect(events[0]).toMatchObject({
+        joinedAt: 2_000_000,
+        startedAt: 2_000_000
+      });
+    } finally {
+      subscription.unsubscribe();
+      await runtime.destroy();
     }
   });
 });
