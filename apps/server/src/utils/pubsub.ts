@@ -71,6 +71,8 @@ type Events = {
     channelId: number;
     userId: number;
     state: TVoiceUserState;
+    joinedAt: number;
+    startedAt: number;
   };
   [ServerEvents.USER_LEAVE_VOICE]: {
     channelId: number;

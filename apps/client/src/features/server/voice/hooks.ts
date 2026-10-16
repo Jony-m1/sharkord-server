@@ -7,6 +7,8 @@ import { useSelector } from 'react-redux';
 import { useIsOwnUser } from '../users/hooks';
 import {
   alwaysShowVoiceControlsSelector,
+  callJoinedAtSelector,
+  callStartedAtSelector,
   hideNonVideoParticipantsSelector,
   hideOwnScreenShareSelector,
   ownVoiceStateSelector,
@@ -17,6 +19,14 @@ import {
   voiceMoveTargetChannelIdSelector,
   voiceReactionsSelector
 } from './selectors';
+
+export const useCallStartedAt = (channelId: number) =>
+  useSelector((state: IRootState) => callStartedAtSelector(state, channelId));
+
+export const useCallJoinedAt = (channelId: number, userId: number) =>
+  useSelector((state: IRootState) =>
+    callJoinedAtSelector(state, channelId, userId)
+  );
 
 export const useVoiceChannelExternalStreamsList = (channelId: number) =>
   useSelector((state: IRootState) =>

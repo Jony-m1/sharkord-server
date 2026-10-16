@@ -21,6 +21,8 @@
   "categorySettingsTitle": "分类设置",
   "profileTitle": "您的个人资料",
   "profileDesc": "在此处更新您的个人信息和设置。",
+  "totalTimeOnSharkord": "在 Sharkord 的总时长",
+  "totalTimeInCall": "通话总时长",
   "usernameLabel": "用户名",
   "usernamePlaceholder": "用户名",
   "bioLabel": "个人简介",

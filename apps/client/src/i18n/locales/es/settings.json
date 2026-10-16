@@ -21,6 +21,8 @@
   "categorySettingsTitle": "Ajustes de categoría",
   "profileTitle": "Tu perfil",
   "profileDesc": "Actualiza tu información personal y ajustes aquí.",
+  "totalTimeOnSharkord": "Tiempo total en Sharkord",
+  "totalTimeInCall": "Tiempo total en llamadas",
   "usernameLabel": "Nombre de usuario",
   "usernamePlaceholder": "Nombre de usuario",
   "bioLabel": "Biografía",

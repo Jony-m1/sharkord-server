@@ -13,7 +13,8 @@
  *   users             8    1 testowner (owner), 2 testuser (low permissions, used for
  *                          every "lacks permission" case), usera, userb, testmoderator,
  *                          6 userc, 7 userd and 8 usere (plain members, so a thread can
- *                          have more distinct repliers than the six avatars it shows)
+ *                          have more distinct repliers than the six avatars it shows);
+ *                          the owner has 2h online and 30m in calls saved, the others none
  *   roles             4    Owner (id 1), Member, Guest, Moderator
  *   userRoles         8    one per user, plus the moderator's extra role
  *   rolePermissions  32    the default permission sets for the roles above
@@ -237,6 +238,8 @@ const seedTestDb = async (
     avatarId: null,
     bannerId: null,
     bio: null,
+    onlineTimeMs: 2 * 60 * 60 * 1000,
+    voiceTimeMs: 30 * 60 * 1000,
     createdAt: firstStart
   };
 

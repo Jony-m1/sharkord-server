@@ -776,25 +776,51 @@ export const serverSlice = createSlice({
         channelId: number;
         userId: number;
         state: TVoiceUserState;
+        joinedAt?: number;
+        startedAt?: number;
       }>
     ) => {
-      const { channelId, userId, state: userState } = action.payload;
+      const {
+        channelId,
+        userId,
+        state: userState,
+        joinedAt,
+        startedAt
+      } = action.payload;
 
       if (!state.voiceMap[channelId]) {
         state.voiceMap[channelId] = { users: {} };
       }
 
-      state.voiceMap[channelId].users[userId] = userState;
+      const channel = state.voiceMap[channelId];
+
+      channel.users[userId] = userState;
+
+      // a server without call times sends neither
+      if (joinedAt !== undefined) {
+        channel.joinedAt = { ...channel.joinedAt, [userId]: joinedAt };
+      }
+
+      if (startedAt !== undefined) {
+        channel.startedAt = startedAt;
+      }
     },
     removeUserFromVoiceChannel: (
       state,
       action: PayloadAction<{ channelId: number; userId: number }>
     ) => {
       const { channelId, userId } = action.payload;
+      const channel = state.voiceMap[channelId];
 
-      if (!state.voiceMap[channelId]) return;
+      if (!channel) return;
 
-      delete state.voiceMap[channelId].users[userId];
+      delete channel.users[userId];
+      delete channel.joinedAt?.[userId];
+
+      // the last one out ends the call
+      if (Object.keys(channel.users).length === 0) {
+        delete channel.startedAt;
+      }
     },
     updateVoiceUserState: (
       state,

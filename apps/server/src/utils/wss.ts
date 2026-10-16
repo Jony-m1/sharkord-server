@@ -21,6 +21,7 @@ import { channelUserCan } from '../db/queries/channels';
 import { getUserRoles } from '../db/queries/roles';
 import { getUserById, getUserByToken } from '../db/queries/users';
 import { getWsInfo } from '../helpers/get-ws-info';
+import { endOnlineSession } from '../helpers/time-tracking';
 import { logger } from '../logger';
 import { eventBus } from '../plugins/event-bus';
 import { enqueueActivityLog } from '../queues/activity-log';
@@ -232,6 +233,7 @@ const handleSocketClose = async (ws: WebSocket) => {
     }
 
     usersIpMap.delete(user.id);
+    endOnlineSession(user.id);
     pubsub.publish(ServerEvents.USER_LEAVE, user.id);
 
     eventBus.emit('user:left', {

@@ -2,8 +2,8 @@ import {
   ChannelPermission,
   UserStatus,
   type Permission,
-  type TLocale,
-  type TUser
+  type TJoinedUser,
+  type TLocale
 } from '@sharkord/shared';
 import { initTRPC, TRPCError } from '@trpc/server';
 import chalk from 'chalk';
@@ -22,7 +22,7 @@ export type Context = {
   handshakeHash: string;
   authenticated: boolean;
   pubsub: typeof pubsub;
-  user: TUser;
+  user: TJoinedUser;
   userId: number;
   token: string;
   currentVoiceChannelId: number | undefined;

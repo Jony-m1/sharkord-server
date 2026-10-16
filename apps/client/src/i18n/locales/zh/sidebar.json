@@ -12,6 +12,8 @@
   "userSettings": "用户设置",
   "voiceConnecting": "连接中...",
   "voiceConnected": "语音已连接",
+  "callTimerOwn": "你在通话中的时间。点击查看通话时长",
+  "callTimerCall": "通话开始至今的时间。点击查看你的时间",
   "voiceFailed": "连接失败",
   "voiceDisconnected": "已断开",
   "disconnectVoice": "断开连接",

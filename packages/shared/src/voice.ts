@@ -14,6 +14,7 @@ export type TVoiceUserState = {
 export type TVoiceUser = {
   userId: number;
   state: TVoiceUserState;
+  joinedAt: number;
 };
 
 export type TExternalStream = {
@@ -28,6 +29,7 @@ export type TExternalStream = {
 export type TChannelState = {
   users: TVoiceUser[];
   externalStreams: { [streamId: number]: TExternalStream };
+  startedAt?: number;
 };
 
 export type TTransportParams = {
@@ -37,11 +39,17 @@ export type TTransportParams = {
   dtlsParameters: any;
 };
 
+// startedAt is when the call on now began (its first user joined) and joinedAt when each user
+// joined it, both in server time
 export type TVoiceMap = {
   [channelId: number]: {
     users: {
       [userId: number]: TVoiceUserState;
     };
+    joinedAt?: {
+      [userId: number]: number;
+    };
+    startedAt?: number;
   };
 };
 

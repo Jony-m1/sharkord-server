@@ -136,7 +136,8 @@ export type TJoinedEmoji = TEmoji & {
   user: TPublicUser;
 };
 
-export type TJoinedUser = TUser & {
+// the time totals have their own route (users.getTimeStats), so user lists leave them out
+export type TJoinedUser = Omit<TUser, 'onlineTimeMs' | 'voiceTimeMs'> & {
   avatar: TFile | null;
   banner: TFile | null;
   roleIds: number[];

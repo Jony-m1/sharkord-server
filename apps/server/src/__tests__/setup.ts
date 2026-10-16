@@ -5,6 +5,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { migrateDatabase } from '../db/migrate';
 import { DATA_PATH } from '../helpers/paths';
+import { clearTrackedTimeForTests } from '../helpers/time-tracking';
 import { clearVoiceMoveGrantsForTests } from '../helpers/voice-move-grants';
 import { createHttpServer } from '../http';
 import { pluginManager } from '../plugins';
@@ -97,6 +98,7 @@ beforeEach(async () => {
   clearVoiceMoveGrantsForTests();
   VoiceRuntime.clearServerMutesForTests();
   clearUserSocketsForTests();
+  clearTrackedTimeForTests();
 
   if (sqlite) {
     try {
