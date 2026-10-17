@@ -84,5 +84,10 @@
   "failedLoadThreads": "Impossible de charger les fils",
   "loadMoreThreads": "Charger plus",
   "closeConversation": "Fermer la conversation",
-  "couldNotCloseDM": "Impossible de fermer le message privé"
+  "couldNotCloseDM": "Impossible de fermer le message privé",
+  "afk": "AFK",
+  "afkAway": "Loin du clavier",
+  "goAfk": "Te marquer comme absent (AFK)",
+  "backFromAfk": "Tu es AFK. Clique pour revenir",
+  "failedSetAfk": "Impossible de changer ton statut AFK"
 }

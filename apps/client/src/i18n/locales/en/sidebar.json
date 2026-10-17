@@ -86,5 +86,10 @@
   "failedLoadThreads": "Failed to load threads",
   "loadMoreThreads": "Load more",
   "closeConversation": "Close conversation",
-  "couldNotCloseDM": "Could not close direct message"
+  "couldNotCloseDM": "Could not close direct message",
+  "afk": "AFK",
+  "afkAway": "Away from keyboard",
+  "goAfk": "Set yourself as away (AFK)",
+  "backFromAfk": "You're AFK. Click to come back",
+  "failedSetAfk": "Could not change your AFK status"
 }

@@ -4,7 +4,8 @@ import {
   OWNER_ROLE_ID,
   Permission,
   ServerEvents,
-  type TTempFile
+  type TTempFile,
+  UserStatus
 } from '@sharkord/shared';
 import { describe, expect, spyOn, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
@@ -37,6 +38,7 @@ import {
   startVoiceSession
 } from '../../helpers/time-tracking';
 import { pubsub } from '../../utils/pubsub';
+import { handleSocketClose } from '../../utils/wss';
 
 describe('users router', () => {
   test('should throw when user lacks permissions (getAll)', async () => {
@@ -1998,5 +2000,98 @@ describe('getTimeStats', () => {
 
     expect(stats.onlineTimeMs).toBe(0);
     expect(stats.voiceTimeMs).toBe(0);
+  });
+});
+
+describe('setAfk', () => {
+  const statusOf = (users: { id: number; status?: UserStatus }[], id: number) =>
+    users.find((user) => user.id === id)?.status;
+
+  // a socket makes the test user count as connected, so they show as online rather than offline
+  const connect = (userId: number) =>
+    initTest(userId, { socket: createFakeSocket() });
+
+  test('should show the user as idle to everyone', async () => {
+    const { caller } = await connect(1);
+
+    await caller.users.setAfk({ afk: true });
+
+    const { initialData } = await initTest(2);
+
+    expect(statusOf(initialData.users, 1)).toBe(UserStatus.IDLE);
+  });
+
+  test('should publish the idle status', async () => {
+    const { caller } = await initTest(1);
+    const publish = spyOn(pubsub, 'publish');
+
+    await caller.users.setAfk({ afk: true });
+
+    expect(publish).toHaveBeenCalledWith(
+      ServerEvents.USER_UPDATE,
+      expect.objectContaining({ id: 1, status: UserStatus.IDLE })
+    );
+  });
+
+  test('should show the user as online again once back', async () => {
+    const { caller } = await connect(1);
+    const publish = spyOn(pubsub, 'publish');
+
+    await caller.users.setAfk({ afk: true });
+    await caller.users.setAfk({ afk: false });
+
+    expect(publish).toHaveBeenLastCalledWith(
+      ServerEvents.USER_UPDATE,
+      expect.objectContaining({ id: 1, status: UserStatus.ONLINE })
+    );
+
+    const { initialData } = await initTest(2);
+
+    expect(statusOf(initialData.users, 1)).toBe(UserStatus.ONLINE);
+  });
+
+  test('should only mark the caller', async () => {
+    const { caller } = await connect(2);
+
+    await caller.users.setAfk({ afk: true });
+
+    const { initialData } = await connect(1);
+
+    expect(statusOf(initialData.users, 2)).toBe(UserStatus.IDLE);
+    expect(statusOf(initialData.users, 1)).toBe(UserStatus.ONLINE);
+  });
+
+  test('should end when the user disconnects', async () => {
+    const socket = createFakeSocket();
+    const { caller } = await initTest(2, { socket });
+
+    await caller.users.setAfk({ afk: true });
+    await handleSocketClose(socket);
+    await connect(2);
+
+    const { initialData } = await initTest(1);
+
+    expect(statusOf(initialData.users, 2)).toBe(UserStatus.ONLINE);
+  });
+
+  test('should reject a value that is not true or false', async () => {
+    const { caller } = await initTest(2);
+
+    await expect(
+      // @ts-expect-error - testing invalid input
+      caller.users.setAfk({ afk: 'yes' })
+    ).rejects.toThrow();
+  });
+
+  test('should rate limit repeated toggling', async () => {
+    const { caller } = await initTest(2);
+
+    for (let i = 0; i < 20; i++) {
+      await caller.users.setAfk({ afk: i % 2 === 0 });
+    }
+
+    await expect(caller.users.setAfk({ afk: true })).rejects.toThrow(
+      'Too many requests. Please try again shortly.'
+    );
   });
 });

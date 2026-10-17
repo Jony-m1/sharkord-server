@@ -1,7 +1,8 @@
+import { AfkBadge } from '@/components/afk-badge';
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { ResizableSidebar } from '@/components/resizable-sidebar';
 import { UserAvatar } from '@/components/user-avatar';
-import { useUsers } from '@/features/server/users/hooks';
+import { useIsUserAfk, useUsers } from '@/features/server/users/hooks';
 import { LocalStorageKey } from '@/helpers/storage';
 import { cn } from '@/lib/utils';
 import {
@@ -26,6 +27,7 @@ type TUserProps = {
 
 const User = memo(({ userId, name, banned }: TUserProps) => {
   const pluginProps = useMemo(() => ({ userId }), [userId]);
+  const isAfk = useIsUserAfk(userId);
 
   return (
     <UserPopover userId={userId}>
@@ -42,6 +44,8 @@ const User = memo(({ userId, name, banned }: TUserProps) => {
         >
           {name}
         </span>
+
+        {isAfk && <AfkBadge />}
 
         <PluginSlotRenderer
           slotId={PluginSlot.MEMBER_LIST_ITEM}

@@ -84,5 +84,10 @@
   "failedLoadThreads": "Не удалось загрузить ветки",
   "loadMoreThreads": "Загрузить ещё",
   "closeConversation": "Закрыть беседу",
-  "couldNotCloseDM": "Не удалось закрыть личное сообщение"
+  "couldNotCloseDM": "Не удалось закрыть личное сообщение",
+  "afk": "AFK",
+  "afkAway": "Отошёл от клавиатуры",
+  "goAfk": "Отметить себя как отошедшего (AFK)",
+  "backFromAfk": "Вы AFK. Нажмите, чтобы вернуться",
+  "failedSetAfk": "Не удалось изменить статус AFK"
 }

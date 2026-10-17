@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import {
   filteredUsersSelector,
   isOwnUserSelector,
+  isUserAfkSelector,
   ownUserHasRoleSelector,
   ownUserIdSelector,
   ownUserPasswordSetSelector,
@@ -36,6 +37,9 @@ export const useOwnPublicUser = () =>
 
 export const useUserStatus = (userId: number) =>
   useSelector((state: IRootState) => userStatusSelector(state, userId));
+
+export const useIsUserAfk = (userId: number | null) =>
+  useSelector((state: IRootState) => isUserAfkSelector(state, userId));
 
 export const useUsernames = () => useSelector(usernamesSelector);
 

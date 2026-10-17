@@ -40,6 +40,8 @@ export enum TestId {
   SERVER_MENU_DISCONNECT = 'server-menu-disconnect',
   SERVER_MENU_SERVER_SETTINGS = 'server-menu-server-settings',
   USER_SETTINGS_TRIGGER = 'user-settings-trigger',
+  AFK_TOGGLE = 'afk-toggle',
+  AFK_BADGE = 'afk-badge',
   SETTINGS_SIDEBAR_ENTRY = 'settings-sidebar-entry',
   INSTALLED_PLUGIN_ITEM = 'installed-plugin-item',
   CATEGORY_ADD_CHANNEL = 'category-add-channel',

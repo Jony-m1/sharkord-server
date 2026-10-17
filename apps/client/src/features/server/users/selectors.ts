@@ -83,6 +83,12 @@ export const userStatusSelector = createCachedSelector(
   (user) => user?.status ?? UserStatus.OFFLINE
 )((_, userId: number | null) => userId);
 
+// the server shows a user who marked themselves away as idle
+export const isUserAfkSelector = createCachedSelector(
+  [userStatusSelector, (_: IRootState, userId: number | null) => userId],
+  (status) => status === UserStatus.IDLE
+)((_, userId: number | null) => userId);
+
 // users are stored as an array, so every by-id lookup was a find. The typing
 // and voice selectors did that inside a map, which is O(users x participants)
 export const usersMapSelector = createSelector([usersSelector], (users) => {

@@ -1,8 +1,9 @@
+import { AfkBadge } from '@/components/afk-badge';
 import { UserAvatar } from '@/components/user-avatar';
 import { useStreamVolumeControl } from '@/components/voice-provider/hooks/use-stream-volume-control';
 import { useCan } from '@/features/server/hooks';
 import type { TVoiceUser } from '@/features/server/types';
-import { useIsOwnUser } from '@/features/server/users/hooks';
+import { useIsOwnUser, useIsUserAfk } from '@/features/server/users/hooks';
 import { useSpeakingState } from '@/features/server/voice/hooks';
 import { Permission, PluginSlot } from '@sharkord/shared';
 import { cn } from '@sharkord/ui';
@@ -33,6 +34,7 @@ const VoiceUser = memo(
   ({ user, channelId, isOwnChannel = false }: TVoiceUserProps) => {
     const { t } = useTranslation('common');
     const isOwnUser = useIsOwnUser(user.id);
+    const isAfk = useIsUserAfk(user.id);
     const { isMuted } = useStreamVolumeControl({
       type: 'user',
       userId: user.id
@@ -82,6 +84,8 @@ const VoiceUser = memo(
           slotId={PluginSlot.VOICE_USER_ROW}
           props={pluginSlotProps}
         />
+
+        {isAfk && <AfkBadge iconOnly />}
 
         <div className="flex items-center gap-1 opacity-60">
           {shouldShowMuteIndicator && (

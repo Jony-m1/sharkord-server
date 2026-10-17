@@ -84,5 +84,10 @@
   "failedLoadThreads": "Impossibile caricare i thread",
   "loadMoreThreads": "Carica altri",
   "closeConversation": "Chiudi conversazione",
-  "couldNotCloseDM": "Impossibile chiudere il messaggio diretto"
+  "couldNotCloseDM": "Impossibile chiudere il messaggio diretto",
+  "afk": "AFK",
+  "afkAway": "Lontano dalla tastiera",
+  "goAfk": "Segnati come assente (AFK)",
+  "backFromAfk": "Sei AFK. Clicca per tornare",
+  "failedSetAfk": "Impossibile cambiare il tuo stato AFK"
 }

@@ -20,6 +20,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { channelUserCan } from '../db/queries/channels';
 import { getUserRoles } from '../db/queries/roles';
 import { getUserById, getUserByToken } from '../db/queries/users';
+import { clearAfk, withAfk } from '../helpers/afk';
 import { getWsInfo } from '../helpers/get-ws-info';
 import { endOnlineSession } from '../helpers/time-tracking';
 import { logger } from '../logger';
@@ -130,7 +131,10 @@ const createContext = async ({
   };
 
   const getStatusById = (userId: number) =>
-    userSockets.has(userId) ? UserStatus.ONLINE : UserStatus.OFFLINE;
+    withAfk(
+      userId,
+      userSockets.has(userId) ? UserStatus.ONLINE : UserStatus.OFFLINE
+    );
 
   const setWsUserId = (userId: number) => {
     if (!ws) return;
@@ -216,6 +220,8 @@ const handleSocketClose = async (ws: WebSocket) => {
     if (userSockets.has(userId)) {
       return;
     }
+
+    clearAfk(userId);
 
     const user = await getUserById(userId);
 
