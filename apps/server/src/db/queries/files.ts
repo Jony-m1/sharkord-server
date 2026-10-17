@@ -1,8 +1,4 @@
-import {
-  exceedsMaxFileSize,
-  type TFile,
-  type TPluginStorageUsage
-} from '@sharkord/shared';
+import type { TFile, TPluginStorageUsage } from '@sharkord/shared';
 import { desc, eq, sql, sum } from 'drizzle-orm';
 import { db } from '..';
 import { attachFileToken } from '../../helpers/files-crypto';
@@ -12,7 +8,7 @@ import { getSettings } from './server';
 const getExceedingOldFiles = async (newFileSize: number) => {
   const { storageQuota, storageUploadMaxFileSize } = await getSettings();
 
-  if (exceedsMaxFileSize(newFileSize, storageUploadMaxFileSize)) {
+  if (newFileSize > storageUploadMaxFileSize) {
     throw new Error('File size exceeds the maximum allowed file size');
   }
 
@@ -80,6 +76,14 @@ const getFilesByMessageId = async (messageId: number): Promise<TFile[]> =>
     .where(eq(messageFiles.messageId, messageId))
     .all()
     .map((row) => row.files);
+
+const getFileNameById = async (fileId: number) =>
+  db
+    .select({ name: files.name })
+    .from(files)
+    .where(eq(files.id, fileId))
+    .limit(1)
+    .get();
 
 const getFilesByUserId = async (
   userId: number,
@@ -197,6 +201,7 @@ const isFileOrphaned = async (fileId: number): Promise<boolean> => {
 
 export {
   getExceedingOldFiles,
+  getFileNameById,
   getFilesByMessageId,
   getFilesByUserId,
   getOrphanedFileIds,

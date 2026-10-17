@@ -1,9 +1,4 @@
-import {
-  exceedsMaxFileSize,
-  getErrorMessage,
-  Permission,
-  UploadHeaders
-} from '@sharkord/shared';
+import { getErrorMessage, Permission, UploadHeaders } from '@sharkord/shared';
 import fs from 'fs';
 import http from 'http';
 import z from 'zod';
@@ -84,7 +79,7 @@ const uploadFileRouteHandler = async (
 
   const settings = await getSettings();
 
-  if (exceedsMaxFileSize(contentLength, settings.storageUploadMaxFileSize)) {
+  if (contentLength > settings.storageUploadMaxFileSize) {
     req.resume();
     req.on('end', () => {
       sendJsonError(

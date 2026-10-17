@@ -1,5 +1,6 @@
 import { AfkBadge } from '@/components/afk-badge';
 import { useDevices } from '@/components/devices-provider/hooks/use-devices';
+import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { UserAvatar } from '@/components/user-avatar';
 import { useStreamVolumeControl } from '@/components/voice-provider/hooks/use-stream-volume-control';
 import { useWebRtcSimulcastEnabled } from '@/features/server/hooks';
@@ -12,9 +13,10 @@ import {
 } from '@/features/server/voice/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { cn } from '@/lib/utils';
-import { StreamKind } from '@sharkord/shared';
+import { PluginSlot, StreamKind } from '@sharkord/shared';
 import { HeadphoneOff, MicOff, Monitor, Video } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CardTheme } from './card-theme';
 import {
   cardBadgeClass,
@@ -35,6 +37,7 @@ import { VolumeButton } from './volume-button';
 
 type TVoiceUserCardProps = {
   userId: number;
+  channelId: number;
   cardId: string;
   onPin: (card: TPinnedCard) => void;
   onUnpin: () => void;
@@ -48,6 +51,7 @@ type TVoiceUserCardProps = {
 const VoiceUserCard = memo(
   ({
     userId,
+    channelId,
     cardId,
     onPin,
     onUnpin,
@@ -57,6 +61,7 @@ const VoiceUserCard = memo(
     voiceUser,
     isAnyCardPinned = false
   }: TVoiceUserCardProps) => {
+    const { t } = useTranslation('common');
     const { videoRef, hasVideoStream } = useVoiceRefs(userId);
     const { volumeKey } = useStreamVolumeControl({ type: 'user', userId });
     const { devices } = useDevices();
@@ -72,6 +77,9 @@ const VoiceUserCard = memo(
     const density = cardDensity(isCompact);
     const showQualityControl =
       !isOwnUser && webRtcSimulcastEnabled && hasVideoStream;
+    const micTitle = voiceUser.state.serverMuted
+      ? t('mutedByModerator')
+      : undefined;
 
     const handlePinToggle = useCallback(() => {
       if (isPinned) {
@@ -80,6 +88,11 @@ const VoiceUserCard = memo(
         onPin({ id: cardId, type: PinnedCardType.USER, userId: userId });
       }
     }, [isPinned, onPin, onUnpin, cardId, userId]);
+
+    const pluginSlotProps = useMemo(
+      () => ({ channelId, userId }),
+      [channelId, userId]
+    );
 
     const backgroundStyle = useMemo(
       () =>
@@ -147,6 +160,18 @@ const VoiceUserCard = memo(
 
         <div
           className={cn(
+            'absolute top-0 left-0 z-10 flex items-center gap-1',
+            density.inset
+          )}
+        >
+          <PluginSlotRenderer
+            slotId={PluginSlot.VOICE_USER_CARD}
+            props={pluginSlotProps}
+          />
+        </div>
+
+        <div
+          className={cn(
             'absolute top-0 right-0 z-10 justify-end',
             density.inset,
             'hidden group-hover/voice-user-card:flex',
@@ -204,10 +229,17 @@ const VoiceUserCard = memo(
           >
             {isAfk && hasVideoStream && <AfkBadge />}
             {voiceUser.state.micMuted && !voiceUser.state.soundMuted && (
-              <MicOff
-                className="text-red-400/80 shrink-0 size-3"
-                fill="currentColor"
-              />
+              <span title={micTitle}>
+                <MicOff
+                  className={cn(
+                    'shrink-0 size-3',
+                    voiceUser.state.serverMuted
+                      ? 'text-orange-400/80'
+                      : 'text-red-400/80'
+                  )}
+                  fill="currentColor"
+                />
+              </span>
             )}
             {voiceUser.state.soundMuted && (
               <HeadphoneOff

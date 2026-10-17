@@ -1,12 +1,7 @@
 import { useChannelById } from '@/features/server/channels/hooks';
 import { useCan, usePublicServerSettings } from '@/features/server/hooks';
 import { uploadFile, type TUploadProgress } from '@/helpers/upload-file';
-import {
-  exceedsMaxFileSize,
-  isPreviewable,
-  Permission,
-  type TTempFile
-} from '@sharkord/shared';
+import { isPreviewable, Permission, type TTempFile } from '@sharkord/shared';
 import {
   useCallback,
   useEffect,
@@ -180,7 +175,7 @@ const useUploadFiles = (
       const withinLimit: File[] = [];
 
       for (const file of allowed) {
-        if (exceedsMaxFileSize(file.size, maxFileSize)) {
+        if (file.size > maxFileSize) {
           toast.error(`"${file.name}" exceeds the maximum file size limit.`);
         } else {
           withinLimit.push(file);

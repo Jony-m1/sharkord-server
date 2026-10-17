@@ -37,6 +37,12 @@ import { runHook } from '../plugins/run-hook';
  */
 
 const TEMP_FILE_TTL = 1000 * 60 * 1; // 1 minute
+
+const MAX_FILE_NAME_BYTES = 255;
+const MAX_EXTENSION_BYTES = 32;
+
+// eslint-disable-next-line no-control-regex
+const UNSAFE_FILE_NAME_CHARS = /[<>:"/\\|?*\x00-\x1F\x7F]/g;
 const OPTIMIZABLE_IMAGE_EXTENSIONS = new Set([
   '.jpg',
   '.jpeg',
@@ -47,16 +53,11 @@ const OPTIMIZABLE_IMAGE_EXTENSIONS = new Set([
   '.avif'
 ]);
 
-// streamed rather than read whole, so an upload never has to fit in memory
 const md5File = async (path: string): Promise<string> => {
+  const file = await fs.readFile(path);
   const hash = createHash('md5');
-  const stream = Bun.file(
-    path
-  ).stream() as unknown as AsyncIterable<Uint8Array>;
 
-  for await (const chunk of stream) {
-    hash.update(chunk);
-  }
+  hash.update(file);
 
   return hash.digest('hex');
 };
@@ -75,8 +76,34 @@ const moveFile = async (src: string, dest: string) => {
   }
 };
 
+const getSafeFileName = (name: string): string => {
+  const safeName = name.replace(UNSAFE_FILE_NAME_CHARS, '_');
+
+  return /^\.*$/.test(safeName) ? 'file' : safeName;
+};
+
+// iterating by code point never splits a multibyte character
+const truncateToBytes = (value: string, maxBytes: number): string => {
+  let result = '';
+  let bytes = 0;
+
+  for (const char of value) {
+    const charBytes = Buffer.byteLength(char);
+
+    if (bytes + charBytes > maxBytes) break;
+
+    result += char;
+    bytes += charBytes;
+  }
+
+  return result;
+};
+
 const getNormalizedExtension = (name: string): string => {
-  return path.extname(name).toLowerCase();
+  return truncateToBytes(
+    path.extname(getSafeFileName(name)).toLowerCase(),
+    MAX_EXTENSION_BYTES
+  );
 };
 
 class TemporaryFileManager {
@@ -329,26 +356,44 @@ class FileManager {
     }
   };
 
-  private getUniqueName = async (originalName: string): Promise<string> => {
-    const baseName = path.basename(originalName, path.extname(originalName));
-    const extension = getNormalizedExtension(originalName);
+  private claimUniqueName = async (originalName: string): Promise<string> => {
+    const safeName = getSafeFileName(originalName);
+    const baseName = path.basename(safeName, path.extname(safeName));
+    const extension = getNormalizedExtension(safeName);
 
-    let fileName = `${baseName}${extension}`;
+    const buildName = (suffix: string) => {
+      const maxBaseBytes =
+        MAX_FILE_NAME_BYTES - Buffer.byteLength(`${suffix}${extension}`);
+
+      return `${truncateToBytes(baseName, maxBaseBytes)}${suffix}${extension}`;
+    };
+
+    let fileName = buildName('');
     let counter = 2;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const existingFile = await db
-        .select()
+        .select({ id: files.id })
         .from(files)
         .where(eq(files.name, fileName))
         .get();
 
       if (!existingFile) {
-        break;
+        try {
+          const handle = await fs.open(path.join(PUBLIC_PATH, fileName), 'wx');
+
+          await handle.close();
+
+          break;
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+            throw error;
+          }
+        }
       }
 
-      fileName = `${baseName}-${counter}${extension}`;
+      fileName = buildName(`-${counter}`);
       counter++;
     }
 
@@ -420,10 +465,19 @@ class FileManager {
 
     await this.handleStorageLimits(tempFile, settings);
 
-    const fileName = await this.getUniqueName(tempFile.originalName);
+    // sqlite reads a leading U+FEFF or U+FFFE as a byte order mark and alters the stored name
+    const originalName = tempFile.originalName.replace(/^[\uFEFF\uFFFE]+/, '');
+    const fileName = await this.claimUniqueName(originalName);
     const destinationPath = path.join(PUBLIC_PATH, fileName);
 
-    await moveFile(tempFile.path, destinationPath);
+    try {
+      await moveFile(tempFile.path, destinationPath);
+    } catch (error) {
+      await fs.rm(destinationPath, { force: true });
+
+      throw error;
+    }
+
     await this.removeTemporaryFile(tempFile.id, true);
 
     const bunFile = Bun.file(destinationPath);
@@ -435,7 +489,7 @@ class FileManager {
         extension: tempFile.extension,
         md5: tempFile.md5,
         size: tempFile.size,
-        originalName: tempFile.originalName,
+        originalName,
         userId: owner.userId,
         pluginId: owner.pluginId,
         mimeType: bunFile?.type || 'application/octet-stream',
@@ -466,7 +520,8 @@ class FileManager {
   public async savePluginFile(
     pluginId: string,
     originalName: string,
-    data: Uint8Array
+    data: Uint8Array,
+    type: FileSaveType = FileSaveType.MESSAGE
   ): Promise<TFile> {
     const stagingPath = path.join(
       TMP_PATH,
@@ -486,7 +541,7 @@ class FileManager {
       return await this.persistTempFile(
         tempFile,
         { userId: null, pluginId },
-        FileSaveType.MESSAGE
+        type
       );
     } catch (error) {
       await this.removeTemporaryFile(tempFile.id);

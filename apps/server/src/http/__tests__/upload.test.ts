@@ -1,9 +1,4 @@
-import {
-  Permission,
-  STORAGE_UNLIMITED_FILE_SIZE,
-  UploadHeaders,
-  type TTempFile
-} from '@sharkord/shared';
+import { Permission, UploadHeaders, type TTempFile } from '@sharkord/shared';
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import fs from 'fs/promises';
@@ -178,22 +173,6 @@ describe('/upload', () => {
       'error',
       `File ${file.name} exceeds the maximum allowed size`
     );
-  });
-
-  test('should accept files over the old limit when max file size is unlimited', async () => {
-    await tdb
-      .update(settings)
-      .set({ storageUploadMaxFileSize: STORAGE_UNLIMITED_FILE_SIZE });
-
-    const content = 'A'.repeat(6 * 1024 * 1024); // over the 5 MB used above
-    const file = getMockFile(content);
-    const response = await uploadFile(file, token);
-
-    expect(response.status).toBe(200);
-
-    const data: any = await response.json();
-
-    expect(data).toHaveProperty('size', content.length);
   });
 
   test('should handle files with special characters in name', async () => {
@@ -596,6 +575,14 @@ describe('sanitizeFileName', () => {
     expect(sanitizeFileName('../../secret.txt')).toBe('secret.txt');
     expect(sanitizeFileName('/etc/shadow')).toBe('shadow');
     expect(sanitizeFileName('foo/../bar.txt')).toBe('bar.txt');
+  });
+
+  test('should keep a leading letter and colon on every platform', () => {
+    expect(sanitizeFileName('a:b.txt')).toBe('a:b.txt');
+    expect(sanitizeFileName('C:informe.txt')).toBe('C:informe.txt');
+    expect(sanitizeFileName('x:')).toBe('x:');
+    expect(sanitizeFileName('C:\\Windows\\evil.txt')).toBe('evil.txt');
+    expect(sanitizeFileName('C:/Windows/evil.txt')).toBe('evil.txt');
   });
 
   test('should return null for null bytes', () => {

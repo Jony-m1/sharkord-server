@@ -1,4 +1,6 @@
+import { MicMode } from '@/types';
 import { createSelector } from '@reduxjs/toolkit';
+import { createCachedSelector } from 're-reselect';
 import type { IRootState } from '../store';
 
 export const appLoadingSelector = (state: IRootState) => state.app.appLoading;
@@ -26,8 +28,19 @@ export const threadChannelIdSelector = (state: IRootState) =>
 export const autoJoinLastChannelSelector = (state: IRootState) =>
   state.app.autoJoinLastChannel;
 
+export const hotkeysEnabledSelector = (state: IRootState) =>
+  state.app.hotkeysEnabled;
+
+export const pushToTalkSelectedSelector = (state: IRootState) =>
+  state.app.hotkeysEnabled && state.app.micMode === MicMode.PUSH_TO_TALK;
+
+export const micModeSelector = (state: IRootState) => state.app.micMode;
+
 export const selectedDmChannelIdSelector = (state: IRootState) =>
   state.app.selectedDmChannelId;
+
+export const selectedThreadSelector = (state: IRootState) =>
+  state.app.selectedThread;
 
 export const browserNotificationsSelector = (state: IRootState) =>
   state.app.browserNotifications;
@@ -74,3 +87,17 @@ export const threadSidebarDataSelector = createSelector(
 
 export const isShiftHeldSelector = (state: IRootState) =>
   state.app.modifierKeysHeldMap?.Shift ?? false;
+
+export const notificationSoundsSelector = (state: IRootState) =>
+  state.app.notificationSounds;
+
+export const messageSentSoundSelector = (state: IRootState) =>
+  state.app.messageSentSound;
+
+export const mutedChannelIdsSelector = (state: IRootState) =>
+  state.app.mutedChannelIds;
+
+export const isChannelMutedSelector = createCachedSelector(
+  [mutedChannelIdsSelector, (_: IRootState, channelId: number) => channelId],
+  (mutedChannelIds, channelId) => mutedChannelIds.includes(channelId)
+)((_, channelId) => channelId);

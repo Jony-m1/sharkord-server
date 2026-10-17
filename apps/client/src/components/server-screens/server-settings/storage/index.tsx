@@ -24,14 +24,12 @@ import {
   STORAGE_MIN_SIGNED_URLS_TTL_SECONDS,
   STORAGE_OVERFLOW_ACTION,
   STORAGE_QUOTA,
-  STORAGE_UNLIMITED_FILE_SIZE,
   StorageOverflowAction,
   type TStorageSettings
 } from '@sharkord/shared';
 import {
   Button,
   Group,
-  Input,
   LoadingCard,
   Select,
   SelectContent,
@@ -46,6 +44,7 @@ import { filesize } from 'filesize';
 import { memo, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DiskMetrics } from './metrics';
+import { NumberInput } from './number-input';
 import { PluginStorageUsage } from './plugin-usage';
 import {
   MAX_AVATAR_SIZE_PRESETS,
@@ -129,6 +128,34 @@ const Storage = memo(() => {
     [values]
   );
 
+  const onMaxFilesPerMessageChange = useCallback(
+    (nextValue: number) => {
+      onChange('storageMaxFilesPerMessage', Math.round(nextValue));
+    },
+    [onChange]
+  );
+
+  const onImageOptimizationQualityChange = useCallback(
+    (nextValue: number) => {
+      onChange('storageImageOptimizationQuality', Math.round(nextValue));
+    },
+    [onChange]
+  );
+
+  const onSignedUrlsTtlChange = useCallback(
+    (nextMinutes: number) => {
+      onChange(
+        'storageSignedUrlsTtlSeconds',
+        clamp(
+          Math.round(nextMinutes) * 60,
+          STORAGE_MIN_SIGNED_URLS_TTL_SECONDS,
+          STORAGE_MAX_SIGNED_URLS_TTL_SECONDS
+        )
+      );
+    },
+    [onChange]
+  );
+
   if (loading) {
     return <LoadingCard className="h-[600px]" />;
   }
@@ -189,15 +216,10 @@ const Storage = memo(() => {
           disabled={!values.storageUploadEnabled}
           onChange={(value) => onChange('storageUploadMaxFileSize', value)}
           preview={
-            Number(values.storageUploadMaxFileSize) ===
-            STORAGE_UNLIMITED_FILE_SIZE ? (
-              t('unlimitedLabel')
-            ) : (
-              <>
-                {labels.storageUploadMaxFileSize.value}{' '}
-                {labels.storageUploadMaxFileSize.unit}
-              </>
-            )
+            <>
+              {labels.storageUploadMaxFileSize.value}{' '}
+              {labels.storageUploadMaxFileSize.unit}
+            </>
           }
           presets={MAX_FILE_SIZE_PRESETS}
         />
@@ -270,30 +292,14 @@ const Storage = memo(() => {
       >
         <div className="flex items-center max-w-150 justify-between">
           <div className="flex items-center gap-2">
-            <Input
-              type="number"
+            <NumberInput
               className="border-input bg-background text-foreground h-8 w-28 rounded-md border px-2 text-sm"
               min={STORAGE_MIN_FILES_PER_MESSAGE}
               max={STORAGE_MAX_FILES_PER_MESSAGE}
               step={1}
               value={Number(values.storageMaxFilesPerMessage)}
               disabled={!values.storageUploadEnabled}
-              onChange={(e) => {
-                const nextValue = Number(e.target.value);
-
-                if (!Number.isFinite(nextValue)) {
-                  return;
-                }
-
-                onChange(
-                  'storageMaxFilesPerMessage',
-                  clamp(
-                    Math.round(nextValue),
-                    STORAGE_MIN_FILES_PER_MESSAGE,
-                    STORAGE_MAX_FILES_PER_MESSAGE
-                  )
-                );
-              }}
+              onChange={onMaxFilesPerMessageChange}
             />
             <span className="text-xs text-muted-foreground">
               {t('filesUnit')}
@@ -387,8 +393,7 @@ const Storage = memo(() => {
           />
 
           <div className="flex w-36 items-center gap-2">
-            <Input
-              type="number"
+            <NumberInput
               min={STORAGE_MIN_IMAGE_OPTIMIZATION_QUALITY}
               max={STORAGE_MAX_IMAGE_OPTIMIZATION_QUALITY}
               step={1}
@@ -397,22 +402,7 @@ const Storage = memo(() => {
                 !values.storageUploadEnabled ||
                 !values.storageImageOptimizationEnabled
               }
-              onChange={(e) => {
-                const nextValue = Number(e.target.value);
-
-                if (!Number.isFinite(nextValue)) {
-                  return;
-                }
-
-                onChange(
-                  'storageImageOptimizationQuality',
-                  clamp(
-                    Math.round(nextValue),
-                    STORAGE_MIN_IMAGE_OPTIMIZATION_QUALITY,
-                    STORAGE_MAX_IMAGE_OPTIMIZATION_QUALITY
-                  )
-                );
-              }}
+              onChange={onImageOptimizationQualityChange}
             />
             <span className="text-xs text-muted-foreground">%</span>
           </div>
@@ -436,8 +426,7 @@ const Storage = memo(() => {
       >
         <div className="flex items-center max-w-150 justify-between">
           <div className="flex items-center gap-2">
-            <Input
-              type="number"
+            <NumberInput
               className="border-input bg-background text-foreground h-8 w-28 rounded-md border px-2 text-sm"
               min={Math.ceil(STORAGE_MIN_SIGNED_URLS_TTL_SECONDS / 60)}
               max={Math.floor(STORAGE_MAX_SIGNED_URLS_TTL_SECONDS / 60)}
@@ -446,21 +435,7 @@ const Storage = memo(() => {
                 Number(values.storageSignedUrlsTtlSeconds) / 60
               )}
               disabled={!values.storageSignedUrlsEnabled}
-              onChange={(e) => {
-                const nextMinutes = Number(e.target.value);
-
-                if (!Number.isFinite(nextMinutes)) {
-                  return;
-                }
-
-                const nextSeconds = clamp(
-                  Math.round(nextMinutes) * 60,
-                  STORAGE_MIN_SIGNED_URLS_TTL_SECONDS,
-                  STORAGE_MAX_SIGNED_URLS_TTL_SECONDS
-                );
-
-                onChange('storageSignedUrlsTtlSeconds', nextSeconds);
-              }}
+              onChange={onSignedUrlsTtlChange}
             />
             <span className="text-xs text-muted-foreground">
               {t('signedUrlsTtlUnit')}

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f80ddc27-d329-40b0-8725-468d28714be5",
+  "id": "c16ed51b-2ee7-4555-bc12-aebd34bd9f8d",
   "prevId": "0bfc32c7-5921-439a-b2e3-32edb9e8dd12",
   "tables": {
     "activity_log": {
@@ -1935,6 +1935,52 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "plugin_storage": {
+      "name": "plugin_storage",
+      "columns": {
+        "plugin_id": {
+          "name": "plugin_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "plugin_storage_plugin_id_key_pk": {
+          "columns": [
+            "plugin_id",
+            "key"
+          ],
+          "name": "plugin_storage_plugin_id_key_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "plugin_user_data": {
       "name": "plugin_user_data",
       "columns": {
@@ -2572,22 +2618,6 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "online_time_ms": {
-          "name": "online_time_ms",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "voice_time_ms": {
-          "name": "voice_time_ms",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         },
         "created_at": {
           "name": "created_at",

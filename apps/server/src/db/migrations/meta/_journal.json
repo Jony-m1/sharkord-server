@@ -257,8 +257,36 @@
     {
       "idx": 36,
       "version": "6",
-      "when": 1792141087404,
-      "tag": "0036_user_time_totals",
+      "when": 1791932955854,
+      "tag": "0036_plugin_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1792007744877,
+      "tag": "0037_plugin_message_components",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1792174265715,
+      "tag": "0038_threads_and_dm_close",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1792274169883,
+      "tag": "0039_user_time_totals",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1792275451955,
+      "tag": "0040_old_unlimited_file_size_to_max",
       "breakpoints": true
     }
   ]

@@ -4,8 +4,10 @@ import {
   filteredUsersSelector,
   isOwnUserSelector,
   isUserAfkSelector,
+  ownUserHasRoleSelector,
   ownUserIdSelector,
   ownUserPasswordSetSelector,
+  ownUserRoleIdsSelector,
   ownUserSelector,
   userByIdSelector,
   usernamesSelector,
@@ -42,3 +44,8 @@ export const useIsUserAfk = (userId: number | null) =>
 export const useUsernames = () => useSelector(usernamesSelector);
 
 export const useFilteredUsers = () => useSelector(filteredUsersSelector);
+
+export const useOwnUserRoleIds = () => useSelector(ownUserRoleIdsSelector);
+
+export const useOwnUserHasRole = (roleId: number) =>
+  useSelector((state: IRootState) => ownUserHasRoleSelector(state, roleId));
