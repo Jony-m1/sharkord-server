@@ -76,3 +76,28 @@ export const waitForMessageElement = (
       resolve(null);
     }, timeoutMs);
   });
+
+type TNotificationRules = {
+  isDm: boolean;
+  isMentioned: boolean;
+  isReplyToOwnMessage: boolean;
+  allMessages: boolean;
+  mentionsOnly: boolean;
+  dms: boolean;
+  replies: boolean;
+};
+
+// 'All Messages' covers every message, the other toggles each add their own case on top of it
+export const shouldSendMessageNotification = ({
+  isDm,
+  isMentioned,
+  isReplyToOwnMessage,
+  allMessages,
+  mentionsOnly,
+  dms,
+  replies
+}: TNotificationRules) =>
+  allMessages ||
+  (isDm && dms) ||
+  (mentionsOnly && isMentioned) ||
+  (replies && isReplyToOwnMessage);

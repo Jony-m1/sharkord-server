@@ -1,3 +1,4 @@
+import { openThreadSidebar } from '@/features/app/actions';
 import {
   browserNotificationsForDmsSelector,
   browserNotificationsForMentionsSelector,
@@ -13,13 +14,15 @@ import { getFileUrl } from '@/helpers/get-file-url';
 import { playSound } from '@/helpers/sounds';
 import type { TConversation } from '@/types';
 import {
+  FileCategory,
+  getFileCategory,
   getPlainTextFromHtml,
   hasMention,
   TYPING_MS,
   type TJoinedMessage,
   type TThreadSummary
 } from '@sharkord/shared';
-import { markChannelAsRead } from '../actions';
+import { jumpToMessage, markChannelAsRead } from '../actions';
 import {
   channelByIdSelector,
   isChannelTextVisibleByIdSelector
@@ -36,6 +39,7 @@ import {
   ownUserRoleIdsSelector,
   userByIdSelector
 } from '../users/selectors';
+import { shouldSendMessageNotification } from './helpers';
 
 const sendBrowserNotification = (
   message: TJoinedMessage,
@@ -64,10 +68,47 @@ const sendBrowserNotification = (
     ? `${authorName} (DM)`
     : `${authorName} in #${channel?.name ?? 'unknown'}`;
 
-  const body = textContent ? textContent : 'Sent an attachment';
-  const icon = user?.avatar ? getFileUrl(user.avatar) : undefined;
+  const imageFile = message.files?.find(
+    (file) => getFileCategory(file.extension) === FileCategory.IMAGE
+  );
 
-  new Notification(title, { body, icon });
+  let body = 'Sent an attachment';
+
+  if (textContent) {
+    body = textContent;
+  } else if (imageFile) {
+    body = 'Sent an image';
+  }
+
+  const icon = user?.avatar ? getFileUrl(user.avatar) : undefined;
+  // a preview of the picture where the platform shows one; not in the dom typings yet
+  const image = imageFile ? getFileUrl(imageFile) : undefined;
+
+  const notification = new Notification(title, {
+    body,
+    icon,
+    image
+  } as NotificationOptions);
+
+  notification.onclick = () => {
+    window.focus();
+
+    const { parentMessageId } = message;
+
+    jumpToMessage({
+      channelId,
+      messageId: message.id,
+      parentMessageId: parentMessageId ?? undefined,
+      isDm
+    });
+
+    // a thread reply lives in its thread, which jumpToMessage does not open
+    if (parentMessageId) {
+      openThreadSidebar(parentMessageId, channelId);
+    }
+
+    notification.close();
+  };
 };
 
 const typingTimeouts: { [key: string]: NodeJS.Timeout } = {};
@@ -131,7 +172,8 @@ export const addMessages = (
       channelId
     );
 
-    const isWindowHidden = document?.hidden;
+    // a window that is open but behind other windows is not hidden, only unfocused
+    const isWindowHidden = document.hidden || !document.hasFocus();
     const isChannelMuted = isChannelMutedSelector(state, channelId);
     const channel = channelByIdSelector(state, channelId);
     const isDmChannel = !!channel?.isDm;
@@ -167,27 +209,20 @@ export const addMessages = (
       }
 
       if (isNotifiable && !isMessageOnScreen) {
-        const hasDmNotificationsEnabled =
-          browserNotificationsForDmsSelector(state);
-        const hasRepliesNotificationsEnabled =
-          browserNotificationsForRepliesSelector(state);
-
-        if (isDmChannel && hasDmNotificationsEnabled) {
-          sendBrowserNotification(targetMessage, channelId, true);
-        } else if (notificationsForMentionsOnly) {
-          if (isMentioned) {
-            sendBrowserNotification(targetMessage, channelId);
-          }
-        } else if (hasBrowserNotificationsEnabled) {
-          sendBrowserNotification(targetMessage, channelId);
-        } else if (hasRepliesNotificationsEnabled) {
-          const isReplyToOwnMessage =
+        const shouldNotify = shouldSendMessageNotification({
+          isDm: isDmChannel,
+          isMentioned,
+          isReplyToOwnMessage:
             !!targetMessage.replyToMessageId &&
-            targetMessage.replyTo?.userId === ownUserId;
+            targetMessage.replyTo?.userId === ownUserId,
+          allMessages: hasBrowserNotificationsEnabled,
+          mentionsOnly: notificationsForMentionsOnly,
+          dms: browserNotificationsForDmsSelector(state),
+          replies: browserNotificationsForRepliesSelector(state)
+        });
 
-          if (isReplyToOwnMessage) {
-            sendBrowserNotification(targetMessage, channelId);
-          }
+        if (shouldNotify) {
+          sendBrowserNotification(targetMessage, channelId, isDmChannel);
         }
       }
     }
