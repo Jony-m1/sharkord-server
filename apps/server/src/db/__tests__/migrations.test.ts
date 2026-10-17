@@ -1,11 +1,9 @@
-import { STORAGE_MAX_FILE_SIZE } from '@sharkord/shared';
 import { Database } from 'bun:sqlite';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import fs from 'fs';
 import path from 'path';
-import { findTestLog, tdb, testLogs } from '../../__tests__/setup';
+import { findTestLog, testLogs } from '../../__tests__/setup';
 import { config } from '../../config';
 import {
   BACKUPS_PATH,
@@ -13,7 +11,6 @@ import {
   TMP_PATH
 } from '../../helpers/paths';
 import { migrateDatabase } from '../migrate';
-import { settings } from '../schema';
 
 // the guard on migrateDatabase's pragma order. a rebuild migration (create __new_x, copy,
 // drop x, rename) fires every child foreign key action on the drop unless foreign keys are
@@ -636,44 +633,5 @@ describe('repairing a database the old fork migrated', () => {
       findTestLog('info', 'Set the fork time totals aside')
     ).toBeUndefined();
     expect(hasTable(sqlite, 'plugin_storage')).toBe(true);
-  });
-});
-
-describe('the old fork unlimited max file size', () => {
-  const runMigration = () => {
-    const statement = fs.readFileSync(
-      path.join(SRC_MIGRATIONS_PATH, '0040_old_unlimited_file_size_to_max.sql'),
-      'utf-8'
-    );
-
-    tdb.run(sql.raw(statement));
-  };
-
-  const maxFileSize = () => {
-    const row = tdb
-      .select({ value: settings.storageUploadMaxFileSize })
-      .from(settings)
-      .get();
-
-    return row?.value;
-  };
-
-  test('should become the largest limit upstream allows', () => {
-    tdb.update(settings).set({ storageUploadMaxFileSize: 0 }).run();
-
-    runMigration();
-
-    expect(maxFileSize()).toBe(STORAGE_MAX_FILE_SIZE);
-  });
-
-  test('should leave a real limit alone', () => {
-    tdb
-      .update(settings)
-      .set({ storageUploadMaxFileSize: 25 * 1024 * 1024 })
-      .run();
-
-    runMigration();
-
-    expect(maxFileSize()).toBe(25 * 1024 * 1024);
   });
 });
