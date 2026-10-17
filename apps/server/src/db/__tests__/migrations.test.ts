@@ -1,5 +1,5 @@
 import { Database } from 'bun:sqlite';
-import { afterAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import fs from 'fs';
 import path from 'path';
@@ -494,6 +494,18 @@ describe('migrations', () => {
 });
 
 describe('repairing a database the old fork migrated', () => {
+  // these open real files, which the server would back up before every run; config is
+  // process wide, so it is put back when the file is done
+  const backupDatabase = config.server.backupDatabase;
+
+  beforeAll(() => {
+    config.server.backupDatabase = false;
+  });
+
+  afterAll(() => {
+    config.server.backupDatabase = backupDatabase;
+  });
+
   const openOldForkDatabase = async () => {
     fs.mkdirSync(workDir, { recursive: true });
 
