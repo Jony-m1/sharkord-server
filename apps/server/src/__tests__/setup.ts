@@ -4,6 +4,7 @@ import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import fs from 'fs/promises';
 import path from 'path';
 import { migrateDatabase } from '../db/migrate';
+import { clearAfkForTests } from '../helpers/afk';
 import { DATA_PATH } from '../helpers/paths';
 import { clearTrackedTimeForTests } from '../helpers/time-tracking';
 import { clearVoiceMoveGrantsForTests } from '../helpers/voice-move-grants';
@@ -97,6 +98,7 @@ beforeEach(async () => {
   clearVoiceMoveGrantsForTests();
   clearUserSocketsForTests();
   clearTrackedTimeForTests();
+  clearAfkForTests();
 
   if (sqlite) {
     try {

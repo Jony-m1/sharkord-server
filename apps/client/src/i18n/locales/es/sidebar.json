@@ -75,5 +75,10 @@
   "failedDeleteCategory": "Error al eliminar la categoría",
   "userVolume": "Volumen del usuario",
   "microphone": "Micrófono",
-  "noiseSuppression": "Supresión de ruido"
+  "noiseSuppression": "Supresión de ruido",
+  "afk": "AFK",
+  "afkAway": "Lejos del teclado",
+  "goAfk": "Marcarte como ausente (AFK)",
+  "backFromAfk": "Estás AFK. Haz clic para volver",
+  "failedSetAfk": "No se pudo cambiar tu estado AFK"
 }

@@ -75,5 +75,10 @@
   "failedDeleteCategory": "删除分类失败",
   "userVolume": "用户音量",
   "microphone": "麦克风",
-  "noiseSuppression": "降噪"
+  "noiseSuppression": "降噪",
+  "afk": "离开",
+  "afkAway": "暂时离开",
+  "goAfk": "将自己设为离开 (AFK)",
+  "backFromAfk": "你处于离开状态，点击返回",
+  "failedSetAfk": "无法更改你的离开状态"
 }

@@ -29,7 +29,8 @@ export const handleUserJoin = (user: TJoinedPublicUser) => {
   const foundUser = userByIdSelector(state, user.id);
 
   if (foundUser) {
-    updateUser(user.id, { ...user, status: UserStatus.ONLINE });
+    // a user who is away keeps showing as away when they open another session
+    updateUser(user.id, { ...user, status: user.status ?? UserStatus.ONLINE });
   } else {
     addUser(user);
   }

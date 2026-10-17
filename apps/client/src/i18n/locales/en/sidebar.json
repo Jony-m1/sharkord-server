@@ -77,5 +77,10 @@
   "failedDeleteCategory": "Failed to delete category",
   "userVolume": "User volume",
   "microphone": "Microphone",
-  "noiseSuppression": "Noise suppression"
+  "noiseSuppression": "Noise suppression",
+  "afk": "AFK",
+  "afkAway": "Away from keyboard",
+  "goAfk": "Set yourself as away (AFK)",
+  "backFromAfk": "You're AFK. Click to come back",
+  "failedSetAfk": "Could not change your AFK status"
 }

@@ -1,9 +1,10 @@
+import { AfkBadge } from '@/components/afk-badge';
 import { useDevices } from '@/components/devices-provider/hooks/use-devices';
 import { UserAvatar } from '@/components/user-avatar';
 import { useStreamVolumeControl } from '@/components/voice-provider/hooks/use-stream-volume-control';
 import { useWebRtcSimulcastEnabled } from '@/features/server/hooks';
 import type { TVoiceUser } from '@/features/server/types';
-import { useIsOwnUser } from '@/features/server/users/hooks';
+import { useIsOwnUser, useIsUserAfk } from '@/features/server/users/hooks';
 import {
   useShowUserBannersInVoice,
   useSpeakingState,
@@ -60,6 +61,7 @@ const VoiceUserCard = memo(
     const { volumeKey } = useStreamVolumeControl({ type: 'user', userId });
     const { devices } = useDevices();
     const isOwnUser = useIsOwnUser(userId);
+    const isAfk = useIsUserAfk(userId);
     const showUserBanners = useShowUserBannersInVoice();
     const webRtcSimulcastEnabled = useWebRtcSimulcastEnabled();
     const { isSimulcastConsumer } = useVoice();
@@ -123,18 +125,22 @@ const VoiceUserCard = memo(
           />
         )}
         {!hasVideoStream && (
-          <UserAvatar
-            userId={userId}
-            className={cn(
-              'pointer-events-none',
-              isPinned
-                ? 'w-16 h-16 md:w-20 md:h-20 lg:w-32 lg:h-32'
-                : isCompact
-                  ? 'w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14'
-                  : 'w-12 h-12 md:w-16 md:h-16 lg:w-24 lg:h-24'
-            )}
-            showStatusBadge={false}
-          />
+          <div className="flex flex-col items-center gap-2">
+            <UserAvatar
+              userId={userId}
+              className={cn(
+                'pointer-events-none',
+                isAfk && 'opacity-60 grayscale',
+                isPinned
+                  ? 'w-16 h-16 md:w-20 md:h-20 lg:w-32 lg:h-32'
+                  : isCompact
+                    ? 'w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14'
+                    : 'w-12 h-12 md:w-16 md:h-16 lg:w-24 lg:h-24'
+              )}
+              showStatusBadge={false}
+            />
+            {isAfk && <AfkBadge />}
+          </div>
         )}
 
         <VoiceReactions userId={userId} isCompact={isCompact} />
@@ -188,13 +194,15 @@ const VoiceUserCard = memo(
           <div
             className={cn(
               cardBadgeClass(isCompact),
-              !voiceUser.state.micMuted &&
+              !(isAfk && hasVideoStream) &&
+                !voiceUser.state.micMuted &&
                 !voiceUser.state.soundMuted &&
                 !voiceUser.state.webcamEnabled &&
                 !voiceUser.state.sharingScreen &&
                 'hidden group-hover/voice-stage:inline-flex'
             )}
           >
+            {isAfk && hasVideoStream && <AfkBadge />}
             {voiceUser.state.micMuted && !voiceUser.state.soundMuted && (
               <MicOff
                 className="text-red-400/80 shrink-0 size-3"

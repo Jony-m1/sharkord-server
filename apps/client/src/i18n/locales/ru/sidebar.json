@@ -75,5 +75,10 @@
   "failedDeleteCategory": "Не удалось удалить категорию",
   "userVolume": "Громкость пользователя",
   "microphone": "Микрофон",
-  "noiseSuppression": "Шумоподавление"
+  "noiseSuppression": "Шумоподавление",
+  "afk": "AFK",
+  "afkAway": "Отошёл от клавиатуры",
+  "goAfk": "Отметить себя как отошедшего (AFK)",
+  "backFromAfk": "Вы AFK. Нажмите, чтобы вернуться",
+  "failedSetAfk": "Не удалось изменить статус AFK"
 }

@@ -1,9 +1,4 @@
-import {
-  ActivityLogType,
-  ServerEvents,
-  UserStatus,
-  zLocale
-} from '@sharkord/shared';
+import { ActivityLogType, ServerEvents, zLocale } from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';
@@ -132,7 +127,7 @@ const joinServerRoute = rateLimitedProcedure(publicProcedure, {
 
     ctx.pubsub.publish(ServerEvents.USER_JOIN, {
       ...foundPublicUser,
-      status: UserStatus.ONLINE
+      status: ctx.getStatusById(ctx.user.id)
     });
 
     if (connectionInfo?.ip) {

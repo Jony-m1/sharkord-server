@@ -90,7 +90,8 @@ const zConfig = z.object({
     pluginExecute: zRateLimiter,
     pluginInstall: zRateLimiter,
     pluginRoute: zRateLimiter,
-    oidc: zRateLimiter
+    oidc: zRateLimiter,
+    setAfk: zRateLimiter
   })
 });
 
@@ -181,6 +182,10 @@ const defaultConfig: TConfig = {
     },
     handshake: {
       maxRequests: 10,
+      windowMs: 60_000
+    },
+    setAfk: {
+      maxRequests: 20,
       windowMs: 60_000
     },
     updatePassword: {

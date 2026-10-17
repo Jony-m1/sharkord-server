@@ -75,5 +75,10 @@
   "failedDeleteCategory": "Kategorii se odstranit nepodařilo",
   "userVolume": "Hlasitost uživatele",
   "microphone": "Mikrofon",
-  "noiseSuppression": "Potlačení šumu"
+  "noiseSuppression": "Potlačení šumu",
+  "afk": "AFK",
+  "afkAway": "Pryč od klávesnice",
+  "goAfk": "Nastavit se jako nepřítomný (AFK)",
+  "backFromAfk": "Jste AFK. Kliknutím se vrátíte",
+  "failedSetAfk": "Stav AFK se nepodařilo změnit"
 }
