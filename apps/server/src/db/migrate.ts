@@ -7,6 +7,11 @@ import path from 'path';
 import { config } from '../config';
 import { BACKUPS_PATH } from '../helpers/paths';
 import { logger } from '../logger';
+import {
+  hasOldForkMigration,
+  restoreForkTimeTotals,
+  setForkTimeTotalsAside
+} from './repair-fork-migrations';
 
 type TForeignKeyViolation = {
   table: string;
@@ -142,6 +147,15 @@ const migrateDatabase = async (
   db: BunSQLiteDatabase,
   migrationsFolder: string
 ): Promise<void> => {
+  // before anything is read: it changes which migrations are pending
+  if (hasOldForkMigration(sqlite)) {
+    if (config.server.backupDatabase) {
+      await backupDatabase(sqlite, ['fork_migration_repair']);
+    }
+
+    setForkTimeTotalsAside(sqlite);
+  }
+
   const pendingTags = await getPendingMigrationTags(sqlite, migrationsFolder);
 
   if (pendingTags.length > 0) {
@@ -185,6 +199,8 @@ const migrateDatabase = async (
   for (const tag of pendingTags) {
     logger.info(`Migration ${tag} ran`);
   }
+
+  restoreForkTimeTotals(sqlite);
 
   reportForeignKeyViolations(sqlite);
 };
