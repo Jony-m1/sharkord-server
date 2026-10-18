@@ -15,9 +15,11 @@ class Updater {
   private checkTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
+    // the fork updates from its own releases: an official release would replace this binary
+    // with upstream Sharkord and silently drop everything the fork adds
     this.bunUpdater = new BunUpdater({
-      repoOwner: 'Sharkord',
-      repoName: 'sharkord',
+      repoOwner: 'Jony-m1',
+      repoName: 'sharkord-server',
       currentVersion: SERVER_VERSION
     });
 

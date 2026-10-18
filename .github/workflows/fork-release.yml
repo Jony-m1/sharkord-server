@@ -1,0 +1,30 @@
+name: Fork Release
+
+# publish a release on GitHub (Releases, Draft a new release, target the fork's branch) and this
+# builds the server and attaches the binaries plus the release.json the server's updater reads
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build project artifacts
+        uses: ./.github/actions/build-sharkord
+
+      - name: Attach binaries to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            apps/server/build/out/sharkord-linux-x64
+            apps/server/build/out/sharkord-linux-arm64
+            apps/server/build/out/sharkord-windows-x64.exe
+            apps/server/build/out/sharkord-macos-arm64
+            apps/server/build/out/release.json
