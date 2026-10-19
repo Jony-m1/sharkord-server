@@ -87,7 +87,7 @@
   "couldNotCloseDM": "Impossible de fermer le message privé",
   "afk": "AFK",
   "afkAway": "Loin du clavier",
-  "goAfk": "Te marquer comme absent (AFK)",
+  "goAfk": "Te marquer comme absent (AFK) et couper le son jusqu'à ton retour",
   "backFromAfk": "Tu es AFK. Clique pour revenir",
   "failedSetAfk": "Impossible de changer ton statut AFK"
 }

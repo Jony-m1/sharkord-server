@@ -87,7 +87,7 @@
   "couldNotCloseDM": "Impossibile chiudere il messaggio diretto",
   "afk": "AFK",
   "afkAway": "Lontano dalla tastiera",
-  "goAfk": "Segnati come assente (AFK)",
+  "goAfk": "Segnati come assente (AFK) e disattiva l'audio finché non torni",
   "backFromAfk": "Sei AFK. Clicca per tornare",
   "failedSetAfk": "Impossibile cambiare il tuo stato AFK"
 }

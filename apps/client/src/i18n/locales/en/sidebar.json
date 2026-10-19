@@ -89,7 +89,7 @@
   "couldNotCloseDM": "Could not close direct message",
   "afk": "AFK",
   "afkAway": "Away from keyboard",
-  "goAfk": "Set yourself as away (AFK)",
+  "goAfk": "Set yourself as away (AFK) and deafen until you're back",
   "backFromAfk": "You're AFK. Click to come back",
   "failedSetAfk": "Could not change your AFK status"
 }

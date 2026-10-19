@@ -204,6 +204,30 @@ const isOwnProducerEvent = (
   return ownUserId !== undefined && remoteId === ownUserId;
 };
 
+type TAfkDeafenStep = {
+  wasAfk: boolean;
+  isAfk: boolean;
+  soundMuted: boolean;
+  deafenedByAfk: boolean;
+};
+
+// going away deafens you unless you already were, and coming back only undeafens what going
+// away deafened, so someone who was deafened on purpose stays that way
+const getAfkDeafenChange = ({
+  wasAfk,
+  isAfk,
+  soundMuted,
+  deafenedByAfk
+}: TAfkDeafenStep): 'deafen' | 'undeafen' | undefined => {
+  if (wasAfk === isAfk) return undefined;
+
+  if (isAfk) {
+    return soundMuted ? undefined : 'deafen';
+  }
+
+  return deafenedByAfk && soundMuted ? 'undeafen' : undefined;
+};
+
 const getSimulcastCodec = (
   rtpCapabilities: RtpCapabilities | null
 ): RtpCodecCapability | undefined =>
@@ -212,6 +236,7 @@ const getSimulcastCodec = (
   );
 
 export {
+  getAfkDeafenChange,
   getRemoteConsumerTypeKey,
   getScreenShareSimulcastEncodings,
   getSimulcastCodec,

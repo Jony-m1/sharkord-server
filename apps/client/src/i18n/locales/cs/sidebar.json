@@ -87,7 +87,7 @@
   "couldNotCloseDM": "Nepodařilo se zavřít přímou zprávu",
   "afk": "AFK",
   "afkAway": "Pryč od klávesnice",
-  "goAfk": "Nastavit se jako nepřítomný (AFK)",
+  "goAfk": "Nastavit se jako nepřítomný (AFK) a ztlumit zvuk, dokud se nevrátíš",
   "backFromAfk": "Jste AFK. Kliknutím se vrátíte",
   "failedSetAfk": "Stav AFK se nepodařilo změnit"
 }

@@ -1,6 +1,6 @@
 import { StreamKind } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
-import { isOwnProducerEvent } from '../helpers';
+import { getAfkDeafenChange, isOwnProducerEvent } from '../helpers';
 
 describe('isOwnProducerEvent', () => {
   test('should treat a producer with our own user id as ours', () => {
@@ -25,5 +25,78 @@ describe('isOwnProducerEvent', () => {
 
   test('should treat nothing as ours before the own user id is known', () => {
     expect(isOwnProducerEvent(1, undefined, StreamKind.AUDIO)).toBe(false);
+  });
+});
+
+describe('getAfkDeafenChange', () => {
+  test('should deafen when going away', () => {
+    expect(
+      getAfkDeafenChange({
+        wasAfk: false,
+        isAfk: true,
+        soundMuted: false,
+        deafenedByAfk: false
+      })
+    ).toBe('deafen');
+  });
+
+  test('should undeafen when coming back after going away deafened you', () => {
+    expect(
+      getAfkDeafenChange({
+        wasAfk: true,
+        isAfk: false,
+        soundMuted: true,
+        deafenedByAfk: true
+      })
+    ).toBe('undeafen');
+  });
+
+  test('should leave someone who was already deafened deafened on both ends', () => {
+    expect(
+      getAfkDeafenChange({
+        wasAfk: false,
+        isAfk: true,
+        soundMuted: true,
+        deafenedByAfk: false
+      })
+    ).toBeUndefined();
+    expect(
+      getAfkDeafenChange({
+        wasAfk: true,
+        isAfk: false,
+        soundMuted: true,
+        deafenedByAfk: false
+      })
+    ).toBeUndefined();
+  });
+
+  test('should do nothing on coming back when you undeafened yourself while away', () => {
+    expect(
+      getAfkDeafenChange({
+        wasAfk: true,
+        isAfk: false,
+        soundMuted: false,
+        deafenedByAfk: false
+      })
+    ).toBeUndefined();
+  });
+
+  test('should do nothing while the AFK status stays the same', () => {
+    expect(
+      getAfkDeafenChange({
+        wasAfk: true,
+        isAfk: true,
+        soundMuted: false,
+        deafenedByAfk: false
+      })
+    ).toBeUndefined();
+    expect(
+      getAfkDeafenChange({
+        wasAfk: false,
+        isAfk: false,
+        soundMuted: true,
+        deafenedByAfk: true
+      })
+    ).toBeUndefined();
   });
 });

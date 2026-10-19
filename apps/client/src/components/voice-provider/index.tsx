@@ -69,6 +69,7 @@ import {
   type TRemoteQualityLayers,
   type TStreamQualitySettings
 } from './helpers';
+import { useAfkDeafen } from './hooks/use-afk-deafen';
 import { useLocalStreams } from './hooks/use-local-streams';
 import { useRemoteStreams } from './hooks/use-remote-streams';
 import { useTransportStats } from './hooks/use-transport-stats';
@@ -1263,6 +1264,11 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     },
     [ownVoiceState.soundMuted, toggleSound]
   );
+
+  useAfkDeafen({
+    soundMuted: ownVoiceState.soundMuted,
+    setSoundMuted: setSoundMutedForBridge
+  });
 
   useEffect(() => {
     setVoiceControlsBridge({

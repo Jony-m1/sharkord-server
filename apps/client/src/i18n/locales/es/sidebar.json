@@ -87,7 +87,7 @@
   "couldNotCloseDM": "No se pudo cerrar el mensaje directo",
   "afk": "AFK",
   "afkAway": "Lejos del teclado",
-  "goAfk": "Marcarte como ausente (AFK)",
+  "goAfk": "Marcarte como ausente (AFK) y ensordecerte hasta que vuelvas",
   "backFromAfk": "Estás AFK. Haz clic para volver",
   "failedSetAfk": "No se pudo cambiar tu estado AFK"
 }
