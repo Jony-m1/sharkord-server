@@ -10,6 +10,7 @@ import {
 import { createCachedSelector } from 're-reselect';
 import {
   hotkeysEnabledSelector,
+  selectedDmChannelIdSelector,
   selectedThreadSelector,
   threadSidebarDataSelector
 } from '../app/selectors';
@@ -459,3 +460,30 @@ export const isThreadOpenSelector = (
 
   return isInSidebar || isInMainView;
 };
+
+// on a phone the channel list and the open conversation are two screens; this says whether
+// something is open in whichever list is showing, the same order ContentWrapper renders in
+export const isMobileContentOpenSelector = createSelector(
+  [
+    activeFullscreenPluginIdSelector,
+    threadsOpenSelector,
+    selectedThreadSelector,
+    dmsOpenSelector,
+    selectedDmChannelIdSelector,
+    selectedChannelIdSelector
+  ],
+  (
+    activeFullscreenPluginId,
+    threadsOpen,
+    selectedThread,
+    dmsOpen,
+    selectedDmChannelId,
+    selectedChannelId
+  ) => {
+    if (activeFullscreenPluginId) return true;
+    if (threadsOpen) return selectedThread !== undefined;
+    if (dmsOpen) return selectedDmChannelId !== undefined;
+
+    return selectedChannelId !== undefined;
+  }
+);

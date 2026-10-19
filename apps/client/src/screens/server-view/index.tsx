@@ -7,9 +7,13 @@ import { TopBar } from '@/components/top-bar';
 import { VoiceChatSidebar } from '@/components/voice-chat-sidebar';
 import { VoiceProvider } from '@/components/voice-provider';
 import { useSelectedDmChannelId, useThreadSidebar } from '@/features/app/hooks';
-import { setDmsOpen } from '@/features/server/actions';
+import { closeMobileContent, setDmsOpen } from '@/features/server/actions';
 import { setSelectedChannelId } from '@/features/server/channels/actions';
-import { useDmsOpen, usePublicServerSettings } from '@/features/server/hooks';
+import {
+  useDmsOpen,
+  useIsMobileContentOpen,
+  usePublicServerSettings
+} from '@/features/server/hooks';
 import {
   getLocalStorageItemBool,
   LocalStorageKey,
@@ -22,8 +26,18 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ContentWrapper } from './content-wrapper';
 import { PreventBrowser } from './prevent-browser';
 
+// below tailwind's md breakpoint the list and the conversation are two screens; from md up they
+// sit side by side and a swipe has nothing to go back to
+const isPhoneLayout = () => {
+  const sideBySide = window.matchMedia('(min-width: 768px)');
+
+  return !sideBySide.matches;
+};
+
 const ServerView = memo(() => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // on a phone the channel list is a full screen of its own, which slides away while a
+  // conversation is open and comes back when it is closed
+  const isMobileContentOpen = useIsMobileContentOpen();
   const [isMobileUsersOpen, setIsMobileUsersOpen] = useState(false);
   const [isDesktopRightSidebarOpen, setIsDesktopRightSidebarOpen] = useState(
     getLocalStorageItemBool(LocalStorageKey.RIGHT_SIDEBAR_STATE, true)
@@ -42,26 +56,35 @@ const ServerView = memo(() => {
     );
   }, [isDesktopRightSidebarOpen]);
 
+  // swiping right goes back a screen (members, then the conversation), as on Discord
   const handleSwipeRight = useCallback(() => {
-    if (isMobileMenuOpen || isMobileUsersOpen) {
-      setIsMobileMenuOpen(false);
+    if (isMobileUsersOpen) {
       setIsMobileUsersOpen(false);
+
       return;
     }
 
-    setIsMobileMenuOpen(true);
-  }, [isMobileMenuOpen, isMobileUsersOpen]);
+    if (isMobileContentOpen && isPhoneLayout()) {
+      closeMobileContent();
+    }
+  }, [isMobileContentOpen, isMobileUsersOpen]);
 
   const handleSwipeLeft = useCallback(() => {
-    if (isMobileMenuOpen || isMobileUsersOpen) {
-      setIsMobileMenuOpen(false);
+    if (isMobileUsersOpen) {
       setIsMobileUsersOpen(false);
 
       return;
     }
 
-    setIsMobileUsersOpen(true);
-  }, [isMobileMenuOpen, isMobileUsersOpen]);
+    // on a phone the members belong to a conversation, not to the list
+    if (isMobileContentOpen || !isPhoneLayout()) {
+      setIsMobileUsersOpen(true);
+    }
+  }, [isMobileContentOpen, isMobileUsersOpen]);
+
+  const handleUsersOverlayClick = useCallback(() => {
+    setIsMobileUsersOpen(false);
+  }, []);
 
   const swipeHandlers = useSwipeGestures({
     onSwipeRight: handleSwipeRight,
@@ -92,26 +115,19 @@ const ServerView = memo(() => {
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
           <PreventBrowser />
 
-          {isMobileMenuOpen && (
-            <div
-              className="md:hidden fixed inset-0 bg-black/50 z-30"
-              onClick={() => setIsMobileMenuOpen(false)}
-            />
-          )}
-
           {isMobileUsersOpen && (
             <div
               className="lg:hidden fixed inset-0 bg-black/50 z-30"
-              onClick={() => setIsMobileUsersOpen(false)}
+              onClick={handleUsersOverlayClick}
             />
           )}
 
           <LeftSidebar
             className={cn(
-              'md:relative md:flex fixed inset-0 left-0 h-full z-40 md:z-0 transition-transform duration-300 ease-in-out',
-              isMobileMenuOpen
-                ? 'translate-x-0'
-                : '-translate-x-full md:translate-x-0'
+              'md:relative md:flex fixed inset-0 left-0 h-full z-40 md:z-0 max-md:w-full! transition-transform duration-300 ease-in-out',
+              isMobileContentOpen
+                ? '-translate-x-full md:translate-x-0'
+                : 'translate-x-0'
             )}
           />
 

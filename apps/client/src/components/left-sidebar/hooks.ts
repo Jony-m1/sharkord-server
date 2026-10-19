@@ -10,7 +10,7 @@ import {
   setLocalStorageItemAsJSON
 } from '@/helpers/storage';
 import { useSelectChannel } from '@/hooks/use-select-channel';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const loadExpandedValue = (categoryId: number): boolean => {
   const expandedMap = getLocalStorageItemAsJSON<Record<number, boolean>>(
@@ -62,24 +62,36 @@ const useCategoryExpanded = (categoryId: number) => {
   );
 };
 
+// once per visit: channels change all the time (a rename, a new one, a reorder), and selecting
+// it again on each change would pull you back into it after you have left it, which on a
+// phone means out of the channel list
 const useRestoreLastSelectedChannel = () => {
   const autoJoinLastChannel = useAutoJoinLastChannel();
   const channelsMap = useChannelsMap();
+  const restoredRef = useRef(false);
 
   useEffect(() => {
-    if (!autoJoinLastChannel) return;
+    if (!autoJoinLastChannel || restoredRef.current) return;
 
     const lastSelectedChannelId = getLocalStorageItem(
       LocalStorageKey.LAST_SELECTED_CHANNEL
     );
 
-    if (lastSelectedChannelId) {
-      const channelId = parseInt(lastSelectedChannelId, 10);
-      const lastChannel = channelsMap[channelId];
+    if (!lastSelectedChannelId) {
+      restoredRef.current = true;
 
-      if (lastChannel) {
-        setSelectedChannelId(channelId);
-      }
+      return;
+    }
+
+    // the channels arrive together once connected; until then there is nothing to look in
+    if (Object.keys(channelsMap).length === 0) return;
+
+    restoredRef.current = true;
+
+    const channelId = parseInt(lastSelectedChannelId, 10);
+
+    if (channelsMap[channelId]) {
+      setSelectedChannelId(channelId);
     }
   }, [channelsMap, autoJoinLastChannel]);
 };

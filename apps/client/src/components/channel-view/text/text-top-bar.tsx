@@ -1,7 +1,11 @@
+import { MobileBackButton } from '@/components/mobile-back-button';
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
+import { UserAvatar } from '@/components/user-avatar';
 import { toggleChannelMuted } from '@/features/app/actions';
 import { useIsChannelMuted } from '@/features/app/hooks';
 import { useChannelById } from '@/features/server/channels/hooks';
+import { useDirectMessageUserId } from '@/features/server/dms/hooks';
+import { useUserById } from '@/features/server/users/hooks';
 import { ChannelType, PluginSlot } from '@sharkord/shared';
 import { IconButton, Tooltip } from '@sharkord/ui';
 import { BellOff, Hash, MessageCircleMore, Volume2, X } from 'lucide-react';
@@ -20,6 +24,8 @@ const TextTopbar = memo(
     const { t } = useTranslation();
     const channel = useChannelById(channelId);
     const isMuted = useIsChannelMuted(channelId);
+    const dmUserId = useDirectMessageUserId(channelId);
+    const dmUser = useUserById(dmUserId ?? null);
 
     const onUnmuteClick = useCallback(() => {
       toggleChannelMuted(channelId);
@@ -27,12 +33,12 @@ const TextTopbar = memo(
 
     const pluginProps = useMemo(() => ({ channelId }), [channelId]);
 
+    // a direct message is named after the person it is with, as on Discord
     const info = useMemo(() => {
       if (channel?.isDm) {
         return {
-          name: 'Direct Message',
-          topic:
-            'This is a direct message channel for conversations between you and the recipient.'
+          name: dmUser?.name,
+          topic: undefined
         };
       }
 
@@ -40,9 +46,13 @@ const TextTopbar = memo(
         name: channel?.name,
         topic: channel?.topic
       };
-    }, [channel]);
+    }, [channel, dmUser]);
 
     const getIcon = useCallback(() => {
+      if (channel?.isDm && dmUserId !== undefined) {
+        return <UserAvatar userId={dmUserId} className="h-6 w-6" />;
+      }
+
       if (channel?.isDm) {
         return (
           <MessageCircleMore className="inline-block text-muted-foreground h-4 w-4" />
@@ -60,16 +70,17 @@ const TextTopbar = memo(
       }
 
       return null;
-    }, [channel]);
+    }, [channel, dmUserId]);
 
     return (
       <div className="flex h-12 border-b border-border bg-card w-auto overflow-hidden">
         <div className="flex w-full items-center justify-between px-4">
           <div className="flex items-center gap-2 min-w-0">
+            {!onClose && <MobileBackButton />}
             {getIcon()}
-            <span className="font-bold truncate max-w-40">{info.name}</span>
+            <span className="font-bold truncate md:max-w-40">{info.name}</span>
             {info.topic && (
-              <span className="text-xs text-muted-foreground truncate">
+              <span className="hidden md:inline text-xs text-muted-foreground truncate">
                 {info.topic}
               </span>
             )}

@@ -1,3 +1,4 @@
+import { MobileBackButton } from '@/components/mobile-back-button';
 import { useVoiceUsersByChannelId } from '@/features/server/hooks';
 import { useOwnUserId } from '@/features/server/users/hooks';
 import {
@@ -118,7 +119,8 @@ const VoiceChannel = memo(({ channelId }: TChannelProps) => {
 
   if (voiceUsers.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="relative flex-1 flex items-center justify-center">
+        <MobileBackButton className="absolute top-2 left-3" />
         <div className="text-center">
           <p className="text-muted-foreground text-lg mb-2">
             No one in the voice channel
@@ -133,6 +135,7 @@ const VoiceChannel = memo(({ channelId }: TChannelProps) => {
 
   return (
     <div className="flex flex-col size-full relative bg-background overflow-hidden group/voice-stage">
+      <MobileBackButton className="absolute top-2 left-3 z-20 rounded-full bg-background/70" />
       <VoiceGrid pinnedCardId={pinnedCard?.id}>{cards}</VoiceGrid>
       <ControlsBar channelId={channelId} />
     </div>

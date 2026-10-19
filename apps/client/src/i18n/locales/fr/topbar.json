@@ -14,5 +14,6 @@
   "stream_other": "flux",
   "noRemoteAudioStreams": "Aucun flux audio distant disponible.",
   "volumeControls": "Contrôle du volume",
-  "externalAudio": "Audio externe"
+  "externalAudio": "Audio externe",
+  "backToList": "Retour"
 }

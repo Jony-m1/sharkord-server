@@ -18,6 +18,7 @@ import {
   hasVisibleChannelsInCategorySelector,
   hiddenPluginComponentsSelector,
   infoSelector,
+  isMobileContentOpenSelector,
   isOwnUserOwnerSelector,
   ownUserRolesSelector,
   ownVoiceUserSelector,
@@ -183,6 +184,9 @@ export const useActiveFullscreenPluginId = () =>
   useSelector(activeFullscreenPluginIdSelector);
 
 export const useDmsOpen = () => useSelector(dmsOpenSelector);
+
+export const useIsMobileContentOpen = () =>
+  useSelector(isMobileContentOpenSelector);
 
 export const useUserSettingsPlugins = () =>
   useSelector(userSettingsPluginsSelector);

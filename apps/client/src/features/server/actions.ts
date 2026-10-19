@@ -27,8 +27,14 @@ import {
   setPluginCommands,
   setPluginComponents
 } from './plugins/actions';
-import { connectedSelector, infoSelector } from './selectors';
+import {
+  activeFullscreenPluginIdSelector,
+  connectedSelector,
+  dmsOpenSelector,
+  infoSelector
+} from './selectors';
 import { serverSliceActions } from './slice';
+import { threadsOpenSelector } from './threads/selectors';
 import { SoundType, type TDisconnectInfo } from './types';
 
 let unsubscribeFromServer: (() => void) | null = null;
@@ -61,6 +67,32 @@ export const setInfo = (info: TServerInfo | undefined) => {
 
 export const setActiveFullscreenPluginId = (pluginId: string | undefined) => {
   store.dispatch(serverSliceActions.setActiveFullscreenPluginId(pluginId));
+};
+
+// back from the open conversation to the list on a phone (isMobileContentOpenSelector): it
+// closes whatever is open in the list that is showing, so tapping it again opens it again
+export const closeMobileContent = () => {
+  const state = store.getState();
+
+  if (activeFullscreenPluginIdSelector(state)) {
+    setActiveFullscreenPluginId(undefined);
+
+    return;
+  }
+
+  if (threadsOpenSelector(state)) {
+    store.dispatch(appSliceActions.setSelectedThread(undefined));
+
+    return;
+  }
+
+  if (dmsOpenSelector(state)) {
+    store.dispatch(appSliceActions.setSelectedDmChannelId(undefined));
+
+    return;
+  }
+
+  store.dispatch(serverSliceActions.setSelectedChannelId(undefined));
 };
 
 export const connect = async () => {

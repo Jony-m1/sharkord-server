@@ -13,7 +13,7 @@ const ONE_MINUTE = 60_000;
 const ONE_HOUR = 60 * ONE_MINUTE;
 const ONE_DAY = 24 * ONE_HOUR;
 const ONE_WEEK = 7 * ONE_DAY;
-const DEFAULT_FORMAT = 'PPpp'; // eg: 12 August 2022, 14:30
+const DEFAULT_FORMAT = 'PPp'; // eg: 12 August 2022, 14:30
 
 type TRelativeTimeProps = {
   date: Date | string;
