@@ -21,7 +21,7 @@ import {
   getParsedMessageHtml,
   getYoutubeVideoIds
 } from './content-cache';
-import { extractMessageOpenGraph } from './helpers';
+import { extractMessageOpenGraph, isMediaLinksOnly } from './helpers';
 import { Media } from './media';
 import { extractMessageMedia } from './media-cache';
 import { MessageRenderFallback } from './message-render-fallback';
@@ -92,6 +92,11 @@ const MessageRenderer = memo(
       [message]
     );
 
+    const mediaLinksOnly = useMemo(
+      () => isMediaLinksOnly(message.content ?? '', allMedia),
+      [message.content, allMedia]
+    );
+
     const openGraphPreviews = useMemo(
       () => extractMessageOpenGraph(message, allMedia),
       [message, allMedia]
@@ -106,13 +111,15 @@ const MessageRenderer = memo(
             message.editedAt && 'msg-edited'
           )}
         >
-          <ErrorBoundary
-            fallback={(error, reset) => (
-              <MessageRenderFallback error={error} reset={reset} />
-            )}
-          >
-            {messageHtml}
-          </ErrorBoundary>
+          {!mediaLinksOnly && (
+            <ErrorBoundary
+              fallback={(error, reset) => (
+                <MessageRenderFallback error={error} reset={reset} />
+              )}
+            >
+              {messageHtml}
+            </ErrorBoundary>
+          )}
           {message.editedAt && (
             <Tooltip
               content={

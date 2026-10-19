@@ -1,5 +1,5 @@
 import type { TJoinedMessage } from '@sharkord/shared';
-import { Element, htmlToDOM, type DOMNode } from 'html-react-parser';
+import { Element, htmlToDOM, Text, type DOMNode } from 'html-react-parser';
 import type {
   TFoundMedia,
   TFoundOpenGraph,
@@ -101,6 +101,59 @@ const hasSpecializedLinkOverride = (href: string): boolean => {
   return isYoutube;
 };
 
+type TMediaLinkScan = { mediaLinks: number; otherContent: boolean };
+
+const scanForMediaLinks = (
+  nodes: DOMNode[],
+  mediaUrls: Set<string>
+): TMediaLinkScan =>
+  nodes.reduce<TMediaLinkScan>(
+    (scan, node) => {
+      if (node instanceof Text) {
+        return node.data.trim() ? { ...scan, otherContent: true } : scan;
+      }
+
+      if (!(node instanceof Element)) return scan;
+
+      if (
+        node.name === 'a' &&
+        node.attribs.href &&
+        mediaUrls.has(normalizeComparableUrl(node.attribs.href))
+      ) {
+        return { ...scan, mediaLinks: scan.mediaLinks + 1 };
+      }
+
+      // an image of its own (a custom emoji) is content the media below does not repeat
+      if (node.name === 'img') {
+        return { ...scan, otherContent: true };
+      }
+
+      const inner = scanForMediaLinks(node.children as DOMNode[], mediaUrls);
+
+      return {
+        mediaLinks: scan.mediaLinks + inner.mediaLinks,
+        otherContent: scan.otherContent || inner.otherContent
+      };
+    },
+    { mediaLinks: 0, otherContent: false }
+  );
+
+// a message that is nothing but links to the media shown under it (a GIF from the picker, a
+// pasted image link) shows just the media, as in Discord; the bare link only repeats it
+const isMediaLinksOnly = (html: string, media: TFoundMedia[]): boolean => {
+  if (!media.length) return false;
+
+  const mediaUrls = new Set(
+    media.map((item) => normalizeComparableUrl(item.url))
+  );
+  const { mediaLinks, otherContent } = scanForMediaLinks(
+    htmlToDOM(html),
+    mediaUrls
+  );
+
+  return mediaLinks > 0 && !otherContent;
+};
+
 const DIRECT_MEDIA_TYPES = new Set(['image', 'video', 'audio']);
 
 const isMediaMetadata = (metadata: TMessageMetadataLike | null | undefined) => {
@@ -174,5 +227,6 @@ export {
   getYoutubeInfo,
   getYoutubeVideoId,
   hasSpecializedLinkOverride,
+  isMediaLinksOnly,
   normalizeComparableUrl
 };
