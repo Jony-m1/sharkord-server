@@ -10,6 +10,7 @@ import { getTrpcError } from '@sharkord/shared';
 import { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { isScreenPickerCancel } from '../helpers';
 
 type TPendingMicRestoreState = {
   previousMicMuted: boolean;
@@ -272,15 +273,16 @@ const useVoiceControls = ({
 
     updateOwnVoiceState({ sharingScreen: newState });
 
-    playSound(
-      newState
-        ? SoundType.OWN_USER_STARTED_SCREENSHARE
-        : SoundType.OWN_USER_STOPPED_SCREENSHARE
-    );
+    // the start sound waits for a screen to be picked, so cancelling the picker stays silent
+    if (!newState) {
+      playSound(SoundType.OWN_USER_STOPPED_SCREENSHARE);
+    }
 
     try {
       if (newState) {
         const video = await startScreenShareStream();
+
+        playSound(SoundType.OWN_USER_STARTED_SCREENSHARE);
 
         // handle native screen share end
         video.onended = async () => {
@@ -309,6 +311,12 @@ const useVoiceControls = ({
         await trpc.voice.updateState.mutate({ sharingScreen: false });
       } catch {
         // ignore
+      }
+
+      if (isScreenPickerCancel(error)) {
+        voiceLogger.info('screen: picker closed without a choice');
+
+        return;
       }
 
       voiceLogger.error('screen: toggle failed, rolled back', error, {

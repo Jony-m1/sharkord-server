@@ -1,6 +1,10 @@
 import { StreamKind } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
-import { getAfkDeafenChange, isOwnProducerEvent } from '../helpers';
+import {
+  getAfkDeafenChange,
+  isOwnProducerEvent,
+  isScreenPickerCancel
+} from '../helpers';
 
 describe('isOwnProducerEvent', () => {
   test('should treat a producer with our own user id as ours', () => {
@@ -98,5 +102,33 @@ describe('getAfkDeafenChange', () => {
         deafenedByAfk: true
       })
     ).toBeUndefined();
+  });
+});
+
+describe('isScreenPickerCancel', () => {
+  test('should treat a browser picker closed without a choice as a cancel', () => {
+    expect(
+      isScreenPickerCancel(
+        new DOMException('Permission denied', 'NotAllowedError')
+      )
+    ).toBe(true);
+  });
+
+  test('should treat the desktop picker closed without a choice as a cancel', () => {
+    expect(
+      isScreenPickerCancel(
+        new DOMException('Error starting capture', 'AbortError')
+      )
+    ).toBe(true);
+  });
+
+  test('should still report real failures', () => {
+    expect(
+      isScreenPickerCancel(
+        new DOMException('Could not start video source', 'NotReadableError')
+      )
+    ).toBe(false);
+    expect(isScreenPickerCancel(new Error('No video track'))).toBe(false);
+    expect(isScreenPickerCancel(undefined)).toBe(false);
   });
 });

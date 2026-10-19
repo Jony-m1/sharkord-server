@@ -204,6 +204,13 @@ const isOwnProducerEvent = (
   return ownUserId !== undefined && remoteId === ownUserId;
 };
 
+// closing the screen picker without choosing rejects getDisplayMedia: browsers call it a
+// NotAllowedError, and the desktop app's own picker an AbortError ("Error starting capture").
+// either way the person changed their mind, which is nothing to report
+const isScreenPickerCancel = (error: unknown) =>
+  error instanceof DOMException &&
+  (error.name === 'NotAllowedError' || error.name === 'AbortError');
+
 type TAfkDeafenStep = {
   wasAfk: boolean;
   isAfk: boolean;
@@ -246,6 +253,7 @@ export {
   getStreamQualityDropdownValue,
   getStreamQualityStorageKey,
   isOwnProducerEvent,
+  isScreenPickerCancel,
   loadStreamQualitiesFromStorage,
   normalizeStreamQuality,
   parseStreamQualityDropdownValue,
