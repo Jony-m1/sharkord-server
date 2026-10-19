@@ -28,3 +28,17 @@ describe('createHttpServer host', () => {
     );
   });
 });
+
+// node answers 408 to any request still running after five minutes, and an upload of a few
+// gigabytes over a home connection runs far longer than that
+describe('createHttpServer timeouts', () => {
+  test('should let a request run as long as it takes', async () => {
+    const server = await createHttpServer(0, '127.0.0.1');
+    const { requestTimeout, headersTimeout } = server;
+
+    await closeServer(server);
+
+    expect(requestTimeout).toBe(0);
+    expect(headersTimeout).toBeGreaterThan(0);
+  });
+});

@@ -236,6 +236,11 @@ const createHttpServer = async (
       }
     );
 
+    // an upload streams for as long as the connection takes, and a large file over a home
+    // connection takes far longer than the five minutes node otherwise allows a whole request,
+    // after which it answers 408 mid upload. slow headers are still cut off (headersTimeout)
+    server.requestTimeout = 0;
+
     server.on('listening', () => {
       logger.debug('HTTP server is listening on port %d', port);
       resolve(server);
