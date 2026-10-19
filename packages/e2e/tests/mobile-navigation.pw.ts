@@ -62,6 +62,21 @@ test('the channel list is the first screen and fills it', async ({ page }) => {
   await expect.poll(() => listWidth(page)).toBe(PHONE.width);
 });
 
+// the list is a full screen layer of its own, and the settings used to open underneath it
+test('user settings open over the channel list', async ({ page }) => {
+  await loginAs(page, 'testuser', 'password123');
+
+  await page.getByTestId(TestId.USER_SETTINGS_TRIGGER).click();
+
+  const settings = page.locator('#portal');
+
+  await expect(settings).toBeVisible();
+
+  // a click checks nothing else sits over its target, so this fails if the list covers it
+  await settings.getByRole('button').first().click();
+  await expect(settings).toBeHidden();
+});
+
 test('a channel opens over the list and back returns to it', async ({
   page
 }) => {
