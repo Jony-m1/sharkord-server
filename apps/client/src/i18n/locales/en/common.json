@@ -137,5 +137,7 @@
   "failedUpdateThreadFollow": "Failed to update thread follow",
   "selectThreadPrompt": "Select a thread to read it.",
   "loadingMessage": "Loading message...",
-  "failedLoadParentMessage": "Failed to load the original message"
+  "failedLoadParentMessage": "Failed to load the original message",
+  "uploadTooLarge": "{{name}} is too large for the server, or for a proxy in front of it such as Cloudflare.",
+  "uploadFailedWithStatus": "{{name}} could not be uploaded (error {{status}})."
 }

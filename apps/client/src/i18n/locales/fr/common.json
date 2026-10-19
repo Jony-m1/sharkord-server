@@ -135,5 +135,7 @@
   "failedUpdateThreadFollow": "Impossible de mettre à jour le suivi du fil",
   "selectThreadPrompt": "Sélectionnez un fil pour le lire.",
   "loadingMessage": "Chargement du message...",
-  "failedLoadParentMessage": "Impossible de charger le message d'origine"
+  "failedLoadParentMessage": "Impossible de charger le message d'origine",
+  "uploadTooLarge": "{{name}} est trop volumineux pour le serveur ou pour un proxy placé devant, comme Cloudflare.",
+  "uploadFailedWithStatus": "Impossible d'envoyer {{name}} (erreur {{status}})."
 }

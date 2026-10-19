@@ -2,6 +2,7 @@ import { UploadHeaders, type TTempFile } from '@sharkord/shared';
 import i18next from 'i18next';
 import { toast } from 'sonner';
 import { getUrlFromServer } from './get-file-url';
+import { getServerUploadError } from './get-server-upload-error';
 import { getSessionStorageItem, SessionStorageKey } from './storage';
 
 // an http header cannot carry anything outside latin-1: setRequestHeader throws on cjk and
@@ -63,17 +64,29 @@ const uploadFile = async (file: File, options?: TUploadFileOptions) => {
         const tempFile: TTempFile = JSON.parse(xhr.responseText);
 
         resolve(tempFile);
-      } else {
-        try {
-          const errorData = JSON.parse(xhr.responseText);
 
-          toast.error(errorData.error || xhr.statusText);
-        } catch {
-          toast.error(xhr.statusText);
-        }
-
-        resolve(undefined);
+        return;
       }
+
+      const serverError = getServerUploadError(xhr.responseText);
+
+      if (serverError) {
+        toast.error(serverError);
+      } else if (xhr.status === 413) {
+        toast.error(
+          i18next.t('uploadTooLarge', { ns: 'common', name: file.name })
+        );
+      } else {
+        toast.error(
+          i18next.t('uploadFailedWithStatus', {
+            ns: 'common',
+            name: file.name,
+            status: xhr.status
+          })
+        );
+      }
+
+      resolve(undefined);
     });
 
     xhr.addEventListener('error', () => {

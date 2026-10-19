@@ -135,5 +135,7 @@
   "failedUpdateThreadFollow": "Не удалось изменить отслеживание ветки",
   "selectThreadPrompt": "Выберите ветку, чтобы прочитать её.",
   "loadingMessage": "Загрузка сообщения...",
-  "failedLoadParentMessage": "Не удалось загрузить исходное сообщение"
+  "failedLoadParentMessage": "Не удалось загрузить исходное сообщение",
+  "uploadTooLarge": "Файл {{name}} слишком велик для сервера или для прокси перед ним, например Cloudflare.",
+  "uploadFailedWithStatus": "Не удалось загрузить {{name}} (ошибка {{status}})."
 }

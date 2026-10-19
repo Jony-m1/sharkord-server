@@ -137,5 +137,7 @@
   "failedUpdateThreadFollow": "Falha ao atualizar o acompanhamento do tópico",
   "selectThreadPrompt": "Selecione um tópico para lê-lo.",
   "loadingMessage": "Carregando mensagem...",
-  "failedLoadParentMessage": "Falha ao carregar a mensagem original"
+  "failedLoadParentMessage": "Falha ao carregar a mensagem original",
+  "uploadTooLarge": "{{name}} é grande demais para o servidor ou para um proxy na frente dele, como o Cloudflare.",
+  "uploadFailedWithStatus": "Não foi possível enviar {{name}} (erro {{status}})."
 }

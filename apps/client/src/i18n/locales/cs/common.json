@@ -135,5 +135,7 @@
   "failedUpdateThreadFollow": "Nepodařilo se změnit sledování vlákna",
   "selectThreadPrompt": "Vyberte vlákno, které chcete číst.",
   "loadingMessage": "Načítání zprávy...",
-  "failedLoadParentMessage": "Nepodařilo se načíst původní zprávu"
+  "failedLoadParentMessage": "Nepodařilo se načíst původní zprávu",
+  "uploadTooLarge": "{{name}} je příliš velký pro server nebo pro proxy před ním, například Cloudflare.",
+  "uploadFailedWithStatus": "{{name}} se nepodařilo nahrát (chyba {{status}})."
 }
