@@ -11,7 +11,6 @@ import {
   type TTempFile
 } from '@sharkord/shared';
 import { randomUUIDv7 } from 'bun';
-import { createHash } from 'crypto';
 import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';
 import path from 'path';
@@ -26,6 +25,7 @@ import { PUBLIC_PATH, TMP_PATH, UPLOADS_PATH } from '../helpers/paths';
 import { logger } from '../logger';
 import { pluginManager } from '../plugins';
 import { runHook } from '../plugins/run-hook';
+import { md5File } from './md5-file';
 
 /**
  * Files workflow:
@@ -54,19 +54,6 @@ const OPTIMIZABLE_IMAGE_EXTENSIONS = new Set([
 ]);
 
 // streamed rather than read whole, so an upload never has to fit in memory
-const md5File = async (path: string): Promise<string> => {
-  const hash = createHash('md5');
-  const stream = Bun.file(
-    path
-  ).stream() as unknown as AsyncIterable<Uint8Array>;
-
-  for await (const chunk of stream) {
-    hash.update(chunk);
-  }
-
-  return hash.digest('hex');
-};
-
 const moveFile = async (src: string, dest: string) => {
   try {
     await fs.rename(src, dest);
