@@ -26,13 +26,29 @@ type TUploadProgress = {
 
 type TUploadFileOptions = {
   onProgress?: (progress: TUploadProgress) => void;
+  // aborting cancels the upload quietly; the server deletes what had arrived
+  signal?: AbortSignal;
 };
 
 const uploadFile = async (file: File, options?: TUploadFileOptions) => {
   const url = getUrlFromServer();
 
   return new Promise<TTempFile | undefined>((resolve) => {
+    if (options?.signal?.aborted) {
+      resolve(undefined);
+
+      return;
+    }
+
     const xhr = new XMLHttpRequest();
+
+    options?.signal?.addEventListener('abort', () => {
+      xhr.abort();
+    });
+
+    xhr.addEventListener('abort', () => {
+      resolve(undefined);
+    });
 
     xhr.open('POST', `${url}/upload`);
 

@@ -13,7 +13,7 @@ import { login, uploadFile } from '../../__tests__/helpers';
 import { tdb, testsBaseUrl } from '../../__tests__/setup';
 import { config } from '../../config';
 import { rolePermissions, settings, users } from '../../db/schema';
-import { TMP_PATH } from '../../helpers/paths';
+import { TMP_PATH, UPLOADS_PATH } from '../../helpers/paths';
 import { sanitizeFileName } from '../helpers';
 
 const getMockFile = (content: string): File => {
@@ -384,6 +384,51 @@ describe('/upload', () => {
     });
 
     expect(raw).toContain('400 Bad Request');
+  });
+
+  // the client cancels by closing the connection part way; what had arrived must not be left
+  // on the disk
+  test('should delete what arrived of an upload cancelled part way', async () => {
+    const before = await fs.readdir(UPLOADS_PATH);
+    const { port, hostname } = new URL(testsBaseUrl);
+
+    await new Promise<void>((resolve) => {
+      const socket = net.connect(Number(port), hostname, () => {
+        socket.write(
+          [
+            'POST /upload HTTP/1.1',
+            `Host: ${hostname}:${port}`,
+            'Content-Type: application/octet-stream',
+            `${UploadHeaders.ORIGINAL_NAME}: cancelled.zip`,
+            `${UploadHeaders.TOKEN}: ${token}`,
+            'Content-Length: 100000',
+            '',
+            'x'.repeat(5000)
+          ].join('\r\n')
+        );
+        setTimeout(() => {
+          socket.destroy();
+          resolve();
+        }, 200);
+      });
+    });
+
+    // the server notices the closed connection on its own schedule
+    for (let i = 0; i < 20; i++) {
+      const leftover = (await fs.readdir(UPLOADS_PATH)).filter(
+        (name) => !before.includes(name)
+      );
+
+      if (leftover.length === 0) break;
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    const leftover = (await fs.readdir(UPLOADS_PATH)).filter(
+      (name) => !before.includes(name)
+    );
+
+    expect(leftover).toEqual([]);
   });
 
   test('should reject a non-numeric content-length', async () => {

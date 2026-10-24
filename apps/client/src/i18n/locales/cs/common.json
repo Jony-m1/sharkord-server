@@ -137,5 +137,9 @@
   "loadingMessage": "Načítání zprávy...",
   "failedLoadParentMessage": "Nepodařilo se načíst původní zprávu",
   "uploadTooLarge": "{{name}} je příliš velký pro server nebo pro proxy před ním, například Cloudflare.",
-  "uploadFailedWithStatus": "{{name}} se nepodařilo nahrát (chyba {{status}})."
+  "uploadFailedWithStatus": "{{name}} se nepodařilo nahrát (chyba {{status}}).",
+  "uploadingFileCount_one": "{{count}} soubor",
+  "uploadingFileCount_other": "{{count}} souborů",
+  "cancelUpload": "Zrušit nahrávání",
+  "uploadSending": "Odesílání…"
 }

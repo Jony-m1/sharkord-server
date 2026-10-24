@@ -137,5 +137,9 @@
   "loadingMessage": "Caricamento del messaggio...",
   "failedLoadParentMessage": "Impossibile caricare il messaggio originale",
   "uploadTooLarge": "{{name}} è troppo grande per il server o per un proxy davanti a esso, come Cloudflare.",
-  "uploadFailedWithStatus": "Impossibile caricare {{name}} (errore {{status}})."
+  "uploadFailedWithStatus": "Impossibile caricare {{name}} (errore {{status}}).",
+  "uploadingFileCount_one": "{{count}} file",
+  "uploadingFileCount_other": "{{count}} file",
+  "cancelUpload": "Annulla caricamento",
+  "uploadSending": "Invio…"
 }

@@ -1,6 +1,5 @@
 import { FullScreenImage } from '@/components/fullscreen-image/content';
-import type { TDisplayItem } from '@/hooks/use-upload-files';
-import { cn } from '@/lib/utils';
+import type { TStagedFile } from '@/hooks/use-staged-files';
 import { FileCategory, getFileCategory } from '@sharkord/shared';
 import { Button } from '@sharkord/ui';
 import { filesize } from 'filesize';
@@ -23,31 +22,17 @@ const categoryIconMap: Record<FileCategory, React.ElementType> = {
   [FileCategory.OTHER]: File
 };
 
-type TUploadProgressBarProps = {
-  progress: number;
-};
-
-const UploadProgressBar = memo(({ progress }: TUploadProgressBarProps) => (
-  <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
-    <div
-      className="h-full bg-primary transition-all duration-200"
-      style={{ width: `${progress}%` }}
-    />
-  </div>
-));
-
 type TPreviewFileProps = {
-  item: TDisplayItem;
+  item: TStagedFile;
   onRemove?: () => void;
 };
 
 const PreviewFile = memo(({ item, onRemove }: TPreviewFileProps) => {
-  const { name, size, extension, previewUrl, progress } = item;
+  const { name, size, extension, previewUrl } = item;
 
   const category = useMemo(() => getFileCategory(extension), [extension]);
   const isImage = category === FileCategory.IMAGE;
   const isVideo = category === FileCategory.VIDEO;
-  const isUploading = progress !== undefined && progress < 100;
 
   const onRemoveClick = useCallback(
     (e: React.MouseEvent) => {
@@ -88,27 +73,10 @@ const PreviewFile = memo(({ item, onRemove }: TPreviewFileProps) => {
                 className="h-full w-full aspect-auto"
               />
             )}
-            {isUploading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                <span className="text-sm font-medium text-white">
-                  {progress}%
-                </span>
-              </div>
-            )}
           </>
         ) : (
-          <div
-            className={cn(
-              'flex h-full w-full flex-col items-center justify-center gap-2 bg-muted/50',
-              isUploading && 'opacity-60'
-            )}
-          >
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted/50">
             <Icon className="h-10 w-10 text-muted-foreground" />
-            {isUploading && (
-              <span className="text-xs font-medium text-muted-foreground">
-                {progress}%
-              </span>
-            )}
           </div>
         )}
       </div>
@@ -137,10 +105,8 @@ const PreviewFile = memo(({ item, onRemove }: TPreviewFileProps) => {
           <Trash className="h-3 w-3" />
         </Button>
       )}
-
-      {isUploading && <UploadProgressBar progress={progress} />}
     </div>
   );
 });
 
-export { PreviewFile, UploadProgressBar };
+export { PreviewFile };

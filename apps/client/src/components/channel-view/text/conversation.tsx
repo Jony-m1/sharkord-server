@@ -7,6 +7,7 @@ import { SoundType } from '@/features/server/types';
 import { playSound } from '@/helpers/sounds';
 import { LocalStorageKey } from '@/helpers/storage';
 import { useTypingSignal } from '@/hooks/use-typing-signal';
+import { startPendingUpload } from '@/lib/pending-uploads';
 import { getTRPCClient } from '@/lib/trpc';
 import type { TReplyTarget } from '@/types';
 import {
@@ -34,6 +35,7 @@ import { useArrowUpEdit } from './hooks/use-arrow-up-edit';
 import { useScrollController } from './hooks/use-scroll-controller';
 import { useScrollToJumpTarget } from './hooks/use-scroll-to-jump-target';
 import { MessagesGroup } from './messages-group';
+import { PendingUploads } from './pending-uploads';
 import { TextNoAccess } from './text-no-access';
 import { TextSkeleton } from './text-skeleton';
 import {
@@ -140,10 +142,12 @@ const Conversation = memo(
       [setNewMessage, draftKey]
     );
 
-    const onSend = useCallback(
-      async (message: string, files: { id: string }[]) => {
-        sendTypingSignal.cancel();
-
+    const sendMessage = useCallback(
+      async (
+        message: string,
+        files: { id: string }[],
+        replyToMessageId: number | undefined
+      ) => {
         const trpc = getTRPCClient();
 
         try {
@@ -152,7 +156,7 @@ const Conversation = memo(
             channelId,
             parentMessageId,
             files: files.map((f) => f.id),
-            replyToMessageId: replyingToMessage?.id
+            replyToMessageId
           });
 
           playSound(SoundType.MESSAGE_SENT);
@@ -165,18 +169,42 @@ const Conversation = memo(
           return false;
         }
 
+        return true;
+      },
+      [channelId, parentMessageId, isThread, t]
+    );
+
+    // a message with files clears the box straight away and goes out once they are up, with
+    // the upload showing at the foot of the conversation meanwhile (PendingUploads)
+    const onSend = useCallback(
+      async (message: string, files: File[]) => {
+        sendTypingSignal.cancel();
+
+        const replyToMessageId = replyingToMessage?.id;
+
+        if (files.length > 0) {
+          // not awaited: it runs until the files are up, and never rejects
+          startPendingUpload({
+            conversationKey,
+            files,
+            send: (uploaded) => sendMessage(message, uploaded, replyToMessageId)
+          });
+        } else {
+          const sent = await sendMessage(message, [], replyToMessageId);
+
+          if (!sent) return false;
+        }
+
         setNewMessageHandler('');
         setReplyingToMessage(undefined);
 
         return true;
       },
       [
-        channelId,
-        parentMessageId,
-        isThread,
+        conversationKey,
         sendTypingSignal,
+        sendMessage,
         setNewMessageHandler,
-        t,
         replyingToMessage?.id
       ]
     );
@@ -239,6 +267,8 @@ const Conversation = memo(
             ))}
           </div>
         </div>
+
+        <PendingUploads conversationKey={conversationKey} />
 
         {detachedFromPresent && (
           <button

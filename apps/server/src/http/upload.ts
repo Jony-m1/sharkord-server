@@ -6,6 +6,7 @@ import {
 } from '@sharkord/shared';
 import fs from 'fs';
 import http from 'http';
+import { pipeline } from 'stream/promises';
 import z from 'zod';
 import { config } from '../config';
 import { userCan } from '../db/queries/roles';
@@ -107,44 +108,49 @@ const uploadFileRouteHandler = async (
   }
 
   const safePath = await fileManager.getSafeUploadPath(originalName);
-  const fileStream = fs.createWriteStream(safePath);
 
-  req.pipe(fileStream);
+  // rejects when the client goes away part way (a cancelled upload) as well as on a write
+  // error, and what had arrived is deleted either way
+  try {
+    await pipeline(req, fs.createWriteStream(safePath));
+  } catch (error) {
+    await fs.promises.rm(safePath, { force: true });
 
-  fileStream.on('finish', async () => {
-    try {
-      const { size } = await fs.promises.stat(safePath);
+    if (req.destroyed) {
+      logger.debug('Upload of %s was cancelled', originalName);
 
-      if (size !== contentLength) {
-        await fs.promises.rm(safePath, { force: true });
-        sendJsonError(res, 400, 'Upload did not match the declared size');
-
-        return;
-      }
-
-      const tempFile = await fileManager.addTemporaryFile({
-        originalName,
-        filePath: safePath,
-        size,
-        userId: user.id
-      });
-
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(tempFile));
-    } catch (error) {
-      logger.error(
-        'Error processing uploaded file: %s',
-        getErrorMessage(error)
-      );
-      sendJsonError(res, 500, 'File processing failed');
+      return;
     }
-  });
 
-  fileStream.on('error', (err) => {
-    logger.error('Error uploading file: %s', getErrorMessage(err));
-
+    logger.error('Error uploading file: %s', getErrorMessage(error));
     sendJsonError(res, 500, 'File upload failed');
-  });
+
+    return;
+  }
+
+  try {
+    const { size } = await fs.promises.stat(safePath);
+
+    if (size !== contentLength) {
+      await fs.promises.rm(safePath, { force: true });
+      sendJsonError(res, 400, 'Upload did not match the declared size');
+
+      return;
+    }
+
+    const tempFile = await fileManager.addTemporaryFile({
+      originalName,
+      filePath: safePath,
+      size,
+      userId: user.id
+    });
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(tempFile));
+  } catch (error) {
+    logger.error('Error processing uploaded file: %s', getErrorMessage(error));
+    sendJsonError(res, 500, 'File processing failed');
+  }
 };
 
 export { uploadFileRouteHandler };

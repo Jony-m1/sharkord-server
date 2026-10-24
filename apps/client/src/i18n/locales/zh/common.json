@@ -137,5 +137,9 @@
   "loadingMessage": "正在加载消息...",
   "failedLoadParentMessage": "加载原始消息失败",
   "uploadTooLarge": "{{name}} 对服务器或其前面的代理（例如 Cloudflare）来说太大了。",
-  "uploadFailedWithStatus": "无法上传 {{name}}（错误 {{status}}）。"
+  "uploadFailedWithStatus": "无法上传 {{name}}（错误 {{status}}）。",
+  "uploadingFileCount_one": "{{count}} 个文件",
+  "uploadingFileCount_other": "{{count}} 个文件",
+  "cancelUpload": "取消上传",
+  "uploadSending": "正在发送…"
 }

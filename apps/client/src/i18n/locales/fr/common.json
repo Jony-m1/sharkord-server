@@ -137,5 +137,9 @@
   "loadingMessage": "Chargement du message...",
   "failedLoadParentMessage": "Impossible de charger le message d'origine",
   "uploadTooLarge": "{{name}} est trop volumineux pour le serveur ou pour un proxy placé devant, comme Cloudflare.",
-  "uploadFailedWithStatus": "Impossible d'envoyer {{name}} (erreur {{status}})."
+  "uploadFailedWithStatus": "Impossible d'envoyer {{name}} (erreur {{status}}).",
+  "uploadingFileCount_one": "{{count}} fichier",
+  "uploadingFileCount_other": "{{count}} fichiers",
+  "cancelUpload": "Annuler l'envoi",
+  "uploadSending": "Envoi…"
 }

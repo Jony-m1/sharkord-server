@@ -14,10 +14,9 @@ import {
   usePublicServerSettings
 } from '@/features/server/hooks';
 import { useFlatPluginCommands } from '@/features/server/plugins/hooks';
-import { useUploadFiles } from '@/hooks/use-upload-files';
-import { getTRPCClient } from '@/lib/trpc';
+import { useStagedFiles, type TStagedFile } from '@/hooks/use-staged-files';
 import type { TReplyTarget } from '@/types';
-import type { TJoinedPublicUser, TTempFile } from '@sharkord/shared';
+import type { TJoinedPublicUser } from '@sharkord/shared';
 import {
   ChannelPermission,
   isEmptyMessage,
@@ -25,8 +24,7 @@ import {
   Permission,
   PluginSlot
 } from '@sharkord/shared';
-import { Button, Spinner } from '@sharkord/ui';
-import { filesize } from 'filesize';
+import { Button } from '@sharkord/ui';
 import { Paperclip, Reply, Send, Smile, X } from 'lucide-react';
 import {
   memo,
@@ -47,11 +45,25 @@ import { PreviewFile } from '../channel-view/text/preview-file';
 import { UsersTypingIndicator } from '../channel-view/text/users-typing';
 import { useFileAwareHeight } from './hooks';
 
+type TStagedFileProps = {
+  item: TStagedFile;
+  onRemove: (id: string) => void;
+};
+
+const StagedFile = memo(({ item, onRemove }: TStagedFileProps) => {
+  const onRemoveClick = useCallback(() => {
+    onRemove(item.id);
+  }, [onRemove, item.id]);
+
+  return <PreviewFile item={item} onRemove={onRemoveClick} />;
+});
+
 type TMessageComposeProps = {
   channelId: number;
   message: string;
   onMessageChange: (value: string) => void;
-  onSend: (message: string, files: TTempFile[]) => Promise<boolean>;
+  // files are sent as they are; the conversation uploads them after the box has cleared
+  onSend: (message: string, files: File[]) => Promise<boolean>;
   onTyping: () => void;
   typingUsers: TJoinedPublicUser[];
   showPluginSlot?: boolean;
@@ -137,22 +149,13 @@ const MessageCompose = memo(
       [can, allPluginCommands]
     );
 
-    const {
-      files,
-      displayItems,
-      removeFile,
-      clearFiles,
-      uploading,
-      uploadingSize,
-      uploadSpeed,
-      openFileDialog,
-      fileInputProps
-    } = useUploadFiles(channelId, containerRef, !canSendMessages);
+    const { files, removeFile, clearFiles, openFileDialog, fileInputProps } =
+      useStagedFiles(channelId, containerRef, !canSendMessages);
 
     useFileAwareHeight({
       containerRef,
       composeContainerRef,
-      displayItems,
+      displayItems: files,
       inputStorageKey,
       inputDefaultMaxHeightVh
     });
@@ -189,7 +192,10 @@ const MessageCompose = memo(
       setSending(true);
       sendingRef.current = true;
 
-      const success = await onSend(message, files);
+      const success = await onSend(
+        message,
+        files.map(({ file }) => file)
+      );
 
       sendingRef.current = false;
       setSending(false);
@@ -233,17 +239,6 @@ const MessageCompose = memo(
       tiptapRef.current?.insertEmoji(emoji);
     }, []);
 
-    const onRemoveFileClick = useCallback(
-      async (fileId: string) => {
-        removeFile(fileId);
-
-        const trpc = getTRPCClient();
-
-        await trpc.files.deleteTemporary.mutate({ fileId }).catch(() => {});
-      },
-      [removeFile]
-    );
-
     useEffect(() => {
       // focus the input when user clicks on reply
       if (replyTarget) {
@@ -274,7 +269,7 @@ const MessageCompose = memo(
         <UsersTypingIndicator typingUsers={typingUsers} />
 
         <div
-          className={`compose-scroll-row flex items-start flex-1 overflow-y-auto cursor-text${uploading ? ' bg-muted' : ''}`}
+          className="compose-scroll-row flex items-start flex-1 overflow-y-auto cursor-text"
           onClick={focusInputOnBackdropClick}
         >
           <div className="flex flex-1 flex-col">
@@ -295,27 +290,10 @@ const MessageCompose = memo(
                 </Button>
               </div>
             )}
-            {uploading && (
-              <div className="flex items-center gap-2 px-2 pt-2">
-                <div className="text-xs text-muted-foreground mb-1">
-                  Uploading files ({filesize(uploadingSize)})
-                  {uploadSpeed > 0 && ` - ${filesize(uploadSpeed)}/s`}
-                </div>
-                <Spinner size="xxs" />
-              </div>
-            )}
-            {displayItems.length > 0 && (
+            {files.length > 0 && (
               <div className="flex gap-1 flex-wrap px-4 pt-4">
-                {displayItems.map((item) => (
-                  <PreviewFile
-                    key={item.id}
-                    item={item}
-                    onRemove={
-                      item.file
-                        ? () => onRemoveFileClick(item.file!.id)
-                        : undefined
-                    }
-                  />
+                {files.map((item) => (
+                  <StagedFile key={item.id} item={item} onRemove={removeFile} />
                 ))}
               </div>
             )}
@@ -327,7 +305,7 @@ const MessageCompose = memo(
               onSubmit={handleSend}
               onTyping={onTyping}
               onArrowUp={onArrowUp}
-              disabled={uploading || !canSendMessages}
+              disabled={!canSendMessages}
               readOnly={sending}
               commands={pluginCommands}
             />
@@ -343,18 +321,14 @@ const MessageCompose = memo(
             )}
 
             <EmojiPicker onEmojiSelect={insertEmoji}>
-              <Button
-                size="icon"
-                variant="ghost"
-                disabled={uploading || !canSendMessages}
-              >
+              <Button size="icon" variant="ghost" disabled={!canSendMessages}>
                 <Smile className="h-4 w-4" />
               </Button>
             </EmojiPicker>
             <Button
               size="icon"
               variant="ghost"
-              disabled={uploading || !canUploadFiles}
+              disabled={!canUploadFiles}
               onClick={openFileDialog}
             >
               <Paperclip className="h-4 w-4" />
@@ -363,7 +337,7 @@ const MessageCompose = memo(
               size="icon"
               variant="ghost"
               onClick={handleSend}
-              disabled={uploading || sending || !canSendMessages}
+              disabled={sending || !canSendMessages}
             >
               <Send className="h-4 w-4" />
             </Button>
