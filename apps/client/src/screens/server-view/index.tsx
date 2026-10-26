@@ -19,20 +19,13 @@ import {
   LocalStorageKey,
   setLocalStorageItemBool
 } from '@/helpers/storage';
+import { isPhoneLayout } from '@/helpers/is-phone-layout';
 import { useSwipeGestures } from '@/hooks/use-swipe-gestures';
 import { cn } from '@/lib/utils';
 import { Permission, TestId } from '@sharkord/shared';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ContentWrapper } from './content-wrapper';
 import { PreventBrowser } from './prevent-browser';
-
-// below tailwind's md breakpoint the list and the conversation are two screens; from md up they
-// sit side by side and a swipe has nothing to go back to
-const isPhoneLayout = () => {
-  const sideBySide = window.matchMedia('(min-width: 768px)');
-
-  return !sideBySide.matches;
-};
 
 const ServerView = memo(() => {
   // on a phone the channel list is a full screen of its own, which slides away while a
