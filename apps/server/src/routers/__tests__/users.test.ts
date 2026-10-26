@@ -2001,6 +2001,53 @@ describe('getTimeStats', () => {
     expect(stats.onlineTimeMs).toBe(0);
     expect(stats.voiceTimeMs).toBe(0);
   });
+
+  // the totals show on every profile card, so a member without any permission reads them too
+  test('should return another user totals to any signed in user', async () => {
+    const clock = spyOn(Date, 'now').mockReturnValue(5_000_000);
+
+    startVoiceSession(1);
+    clock.mockReturnValue(5_060_000);
+
+    const { caller } = await initTest(2);
+
+    expect(await caller.users.getTimeStats({ userId: 1 })).toEqual({
+      onlineTimeMs: 2 * 60 * 60 * 1000,
+      voiceTimeMs: 30 * 60 * 1000 + 60_000,
+      online: false,
+      inVoice: true,
+      serverTime: 5_060_000
+    });
+  });
+
+  test('should return the caller own totals when asked for by id', async () => {
+    spyOn(Date, 'now').mockReturnValue(5_000_000);
+
+    const { caller } = await initTest(1);
+
+    expect(await caller.users.getTimeStats({ userId: 1 })).toEqual(
+      await caller.users.getTimeStats()
+    );
+  });
+
+  test('should reject an unknown user', async () => {
+    const { caller } = await initTest(2);
+
+    await expect(caller.users.getTimeStats({ userId: 999999 })).rejects.toThrow(
+      'User not found'
+    );
+  });
+
+  test('should reject a user id that is not a positive integer', async () => {
+    const { caller } = await initTest(2);
+
+    await expect(caller.users.getTimeStats({ userId: 0 })).rejects.toThrow();
+    await expect(caller.users.getTimeStats({ userId: 1.5 })).rejects.toThrow();
+    await expect(
+      // @ts-expect-error - testing invalid input
+      caller.users.getTimeStats({ userId: 'one' })
+    ).rejects.toThrow();
+  });
 });
 
 describe('setAfk', () => {

@@ -1,5 +1,6 @@
 import { assertNotificationsPermission } from '@/helpers/assert-notifications-permission';
 import { getFileUrl, getUrlFromServer } from '@/helpers/get-file-url';
+import { isWideLayout } from '@/helpers/is-wide-layout';
 import {
   LocalStorageKey,
   setLocalStorageItem,
@@ -16,8 +17,12 @@ import type { TServerInfo } from '@sharkord/shared';
 import { toast } from 'sonner';
 import { markChannelAsRead, setInfo } from '../server/actions';
 import { visibleVoiceChatChannelIdSelector } from '../server/channels/selectors';
+import { isThreadOverConversationSelector } from '../server/selectors';
+import { serverSliceActions } from '../server/slice';
+import { setThreadsOpen } from '../server/threads/actions';
 import { store } from '../store';
 import {
+  membersDrawerOpenSelector,
   mutedChannelIdsSelector,
   pluginSlotDebugSelector,
   voiceChatSidebarOpenSelector
@@ -141,6 +146,8 @@ export const resetApp = () => {
     })
   );
   store.dispatch(appSliceActions.setSelectedThread(undefined));
+  // the server view comes back on its channel list, which an open drawer would cover
+  store.dispatch(appSliceActions.setMembersDrawerOpen(false));
 };
 
 export const setAutoJoinLastChannel = (autoJoin: boolean) => {
@@ -165,18 +172,51 @@ export const setHotkeysEnabled = (enabled: boolean) => {
   }
 };
 
+// on a phone, a thread or a DM picked while back slides the list in stays open, as a channel
+// picked then does (the server slice resets the flag for those)
+const cancelMobileContentClosing = () =>
+  store.dispatch(serverSliceActions.setMobileContentClosing(false));
+
 export const setSelectedThread = (thread: TThreadTarget | undefined) => {
   store.dispatch(appSliceActions.setSelectedThread(thread));
 
   if (thread) {
+    cancelMobileContentClosing();
     closeThreadSidebar();
   }
+};
+
+// the thread sidebar is a column that only shows from tailwind's lg breakpoint up; below that a
+// thread opens full screen in the threads view, the way picking one from the threads list does
+export const openThread = (parentMessageId: number, channelId: number) => {
+  if (isWideLayout()) {
+    openThreadSidebar(parentMessageId, channelId);
+
+    return;
+  }
+
+  setThreadsOpen(true);
+  setSelectedThread({ parentMessageId, channelId });
+  store.dispatch(appSliceActions.setSelectedThreadFromConversation(true));
+};
+
+// the thread's close button, and back from a thread on a phone
+export const closeSelectedThread = () => {
+  const state = store.getState();
+
+  // the threads go first, so the threads list never shows in between
+  if (isThreadOverConversationSelector(state)) {
+    setThreadsOpen(false);
+  }
+
+  setSelectedThread(undefined);
 };
 
 export const setSelectedDmChannelId = (channelId: number | undefined) => {
   store.dispatch(appSliceActions.setSelectedDmChannelId(channelId));
 
   if (channelId !== undefined) {
+    cancelMobileContentClosing();
     markChannelAsRead(channelId);
   }
 };
@@ -280,6 +320,17 @@ export const toggleVoiceChatSidebar = () => {
   } else {
     openVoiceChatSidebar();
   }
+};
+
+// below lg the members are a drawer over the conversation, from lg up a column the top bar
+// toggles, so the two are separate states
+export const setMembersDrawerOpen = (open: boolean) =>
+  store.dispatch(appSliceActions.setMembersDrawerOpen(open));
+
+export const toggleMembersDrawer = () => {
+  const isOpen = membersDrawerOpenSelector(store.getState());
+
+  setMembersDrawerOpen(!isOpen);
 };
 
 export const togglePluginSlotDebug = () => {

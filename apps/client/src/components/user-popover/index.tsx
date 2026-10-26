@@ -1,189 +1,86 @@
-import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
-import { setModViewOpen, setSelectedDmChannelId } from '@/features/app/actions';
-import { setDmsOpen } from '@/features/server/actions';
-import { usePublicServerSettings, useUserRoles } from '@/features/server/hooks';
-import { useIsOwnUser, useUserById } from '@/features/server/users/hooks';
-import { getFileUrl } from '@/helpers/get-file-url';
-import { getRenderedUsername } from '@/helpers/get-rendered-username';
-import { useDateLocale } from '@/hooks/use-date-locale';
-import { getTRPCClient } from '@/lib/trpc';
+import { useUserById } from '@/features/server/users/hooks';
+import { isPhoneLayout } from '@/helpers/is-phone-layout';
 import {
-  DELETED_USER_IDENTITY_AND_NAME,
-  Permission,
-  PluginSlot,
-  TestId,
-  UserStatus,
-  getTrpcError
-} from '@sharkord/shared';
-import {
-  IconButton,
   Popover,
   PopoverContent,
-  PopoverTrigger
+  PopoverTrigger,
+  Sheet,
+  SheetContent,
+  SheetTitle
 } from '@sharkord/ui';
-import { format } from 'date-fns';
-import { MessageSquare, ShieldCheck, Trash, UserCog } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { Protect } from '../protect';
-import { RoleBadge } from '../role-badge';
-import { UserAvatar } from '../user-avatar';
-import { UserStatusBadge } from '../user-status';
+import { ProfileCard } from './profile-card';
 
 type TUserPopoverProps = {
   userId: number;
-  children: React.ReactNode;
+  children: ReactNode;
+  side?: 'top' | 'right' | 'bottom' | 'left';
+  align?: 'start' | 'center' | 'end';
 };
 
-const UserPopover = memo(({ userId, children }: TUserPopoverProps) => {
-  const { t } = useTranslation();
-  const dateLocale = useDateLocale();
-  const user = useUserById(userId);
-  const roles = useUserRoles(userId);
-  const settings = usePublicServerSettings();
-  const isOwnUser = useIsOwnUser(userId);
+// for screen readers; inside the sheet, so only an open one translates it
+const ProfileSheetTitle = memo(() => {
+  const { t } = useTranslation('common');
 
-  const pluginProps = useMemo(() => ({ userId }), [userId]);
-
-  const onDirectMessageClick = useCallback(async () => {
-    const trpc = getTRPCClient();
-
-    try {
-      const result = await trpc.dms.open.mutate({ userId });
-
-      setDmsOpen(true);
-      setSelectedDmChannelId(result.channelId);
-    } catch (error) {
-      toast.error(getTrpcError(error, t('couldNotOpenDM')));
-    }
-  }, [userId, t]);
-
-  if (!user) return <>{children}</>;
-
-  const isDeleted = user.name === DELETED_USER_IDENTITY_AND_NAME;
-  const showDmButton =
-    settings?.directMessagesEnabled && !isDeleted && !isOwnUser;
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start" side="right">
-        <div className="relative">
-          {user.banned && (
-            <div className="absolute right-2 top-2 bg-red-500 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1">
-              <ShieldCheck className="h-3 w-3" />
-              {t('bannedBadge')}
-            </div>
-          )}
-          {isDeleted && (
-            <div className="absolute right-2 top-2 bg-gray-600 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1">
-              <Trash className="h-3 w-3" />
-              {t('deletedBadge')}
-            </div>
-          )}
-          {user.banner ? (
-            <div
-              className="h-24 w-full rounded-t-md bg-cover bg-center bg-no-repeat"
-              style={{
-                backgroundImage: `url("${getFileUrl(user.banner)}")`
-              }}
-            />
-          ) : (
-            <div
-              className="h-24 w-full rounded-t-md"
-              style={{
-                background: user.profileColor || '#5865f2'
-              }}
-            />
-          )}
-          <div className="absolute left-4 top-16">
-            <UserAvatar
-              userId={user.id}
-              className="h-16 w-16 border-4 border-card"
-              showStatusBadge={false}
-            />
-          </div>
-        </div>
-
-        <div className="px-4 pt-12 pb-4">
-          <div className="mb-3">
-            <span className="text-lg font-semibold text-foreground truncate mb-1">
-              {getRenderedUsername(user)}
-            </span>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <UserStatusBadge
-                  status={user.status || UserStatus.OFFLINE}
-                  className="h-3 w-3"
-                />
-                <span className="text-xs text-muted-foreground capitalize">
-                  {user.status || UserStatus.OFFLINE}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {roles.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {roles.map((role) => (
-                <RoleBadge key={role.id} role={role} />
-              ))}
-            </div>
-          )}
-
-          {user.bio && (
-            <div className="mt-3">
-              <p className="text-sm text-foreground leading-relaxed">
-                {user.bio}
-              </p>
-            </div>
-          )}
-          <div className="flex justify-between items-center mt-4 pt-3 border-t border-border">
-            <p className="text-xs text-muted-foreground">
-              {t('memberSince', {
-                date: format(new Date(user.createdAt), 'PP', {
-                  locale: dateLocale
-                })
-              })}
-            </p>
-
-            <div className="flex gap-2 items-center">
-              <PluginSlotRenderer
-                slotId={PluginSlot.USER_POPOVER}
-                props={pluginProps}
-              />
-
-              {showDmButton && (
-                <IconButton
-                  data-testid={TestId.USER_POPOVER_DM}
-                  icon={MessageSquare}
-                  variant="ghost"
-                  size="sm"
-                  title={t('directMessage')}
-                  onClick={onDirectMessageClick}
-                />
-              )}
-
-              {
-                <Protect permission={Permission.MANAGE_USERS}>
-                  <IconButton
-                    data-testid={TestId.USER_POPOVER_MODERATE}
-                    icon={UserCog}
-                    variant="ghost"
-                    size="sm"
-                    title={t('moderationView')}
-                    onClick={() => setModViewOpen(true, user.id)}
-                  />
-                </Protect>
-              }
-            </div>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
+  return <SheetTitle className="sr-only">{t('userProfile')}</SheetTitle>;
 });
+
+// only the trigger lives here, so the many closed cards on screen cost one store read each. on a
+// phone there is no room beside the trigger, so the same card slides up from the bottom instead,
+// the way Discord mobile shows a profile
+const UserPopover = memo(
+  ({
+    userId,
+    children,
+    side = 'right',
+    align = 'start'
+  }: TUserPopoverProps) => {
+    const user = useUserById(userId);
+    const [open, setOpen] = useState(false);
+    const [asSheet, setAsSheet] = useState(false);
+
+    const handleOpenChange = useCallback((nextOpen: boolean) => {
+      // decided per open, so turning a tablet round between two opens is picked up
+      if (nextOpen) setAsSheet(isPhoneLayout());
+
+      setOpen(nextOpen);
+    }, []);
+
+    const close = useCallback(() => setOpen(false), []);
+
+    if (!user) return <>{children}</>;
+
+    return (
+      <>
+        <Popover open={open && !asSheet} onOpenChange={handleOpenChange}>
+          <PopoverTrigger asChild>{children}</PopoverTrigger>
+          <PopoverContent
+            className="w-80 max-w-[calc(100vw-1rem)] p-0"
+            side={side}
+            align={align}
+            collisionPadding={8}
+          >
+            <ProfileCard userId={userId} onClose={close} />
+          </PopoverContent>
+        </Popover>
+
+        {asSheet && (
+          <Sheet open={open} onOpenChange={handleOpenChange}>
+            <SheetContent
+              side="bottom"
+              aria-describedby={undefined}
+              className="mx-auto max-h-[85dvh] max-w-lg gap-0 overflow-y-auto rounded-t-xl p-0"
+            >
+              <ProfileSheetTitle />
+              <ProfileCard userId={userId} onClose={close} asSheet />
+            </SheetContent>
+          </Sheet>
+        )}
+      </>
+    );
+  }
+);
 
 UserPopover.displayName = 'UserPopover';
 

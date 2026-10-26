@@ -28,6 +28,17 @@ const DM_CHANNEL_ID = 3;
 
 const VOICE_CHANNEL_ID = 2;
 
+// seeded moderator: MANAGE_USERS and MANAGE_ROLES, and not the owner role
+const MODERATOR_USER_ID = 5;
+const MODERATOR_ROLE_ID = 4;
+
+const grantToModeratorRole = async (permission: Permission) =>
+  tdb.insert(rolePermissions).values({
+    roleId: MODERATOR_ROLE_ID,
+    permission,
+    createdAt: Date.now()
+  });
+
 const joinVoiceChannelTwo = async (userId: number) => {
   const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
 
@@ -748,6 +759,46 @@ describe('voice router', () => {
         await runtime.destroy();
       }
     });
+
+    test('should mark the screen as shared for a user allowed to share it', async () => {
+      const { runtime, caller } = await joinVoiceChannelTwo(2);
+
+      try {
+        await caller.voice.updateState({ sharingScreen: true });
+
+        expect(runtime.getUserState(2)).toMatchObject({ sharingScreen: true });
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    // a public channel grants SHARE_SCREEN on the channel to everyone, so only the server
+    // permission stands between this user and a share that produce would then refuse
+    test('should never tell the call about a screen share without SHARE_SCREEN', async () => {
+      await revokeFromDefaultRole(Permission.SHARE_SCREEN);
+
+      const { runtime, caller } = await joinVoiceChannelTwo(2);
+      const publish = spyOn(pubsub, 'publish');
+
+      try {
+        await caller.voice.updateState({ sharingScreen: true, micMuted: true });
+
+        expect(runtime.getUserState(2)).toMatchObject({
+          sharingScreen: false,
+          micMuted: true
+        });
+        expect(publish).toHaveBeenCalledWith(
+          ServerEvents.USER_VOICE_STATE_UPDATE,
+          {
+            channelId: VOICE_CHANNEL_ID,
+            userId: 2,
+            state: expect.objectContaining({ sharingScreen: false })
+          }
+        );
+      } finally {
+        await runtime.destroy();
+      }
+    });
   });
 
   describe('server mute', () => {
@@ -801,6 +852,401 @@ describe('voice router', () => {
       } finally {
         await runtime.destroy();
       }
+    });
+  });
+
+  describe('disconnectUser', () => {
+    test('should take the user out of the call and tell everyone', async () => {
+      const { caller } = await initTest(1);
+      const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+      runtime.addUser(4, { micMuted: false, soundMuted: false });
+
+      const publish = spyOn(pubsub, 'publish');
+
+      try {
+        await caller.voice.disconnectUser({ userId: 4 });
+
+        expect(runtime.getUser(4)).toBeUndefined();
+        expect(publish).toHaveBeenCalledWith(ServerEvents.USER_LEAVE_VOICE, {
+          channelId: VOICE_CHANNEL_ID,
+          userId: 4
+        });
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    // a move can reveal a private channel to the user it pulls in; taking them out of it has
+    // to take the channel back, exactly as leaving on their own does
+    test('should hide a private channel the user only saw because of the call', async () => {
+      const { caller } = await initTest(1);
+      const runtime = new VoiceRuntime(PRIVATE_VOICE_CHANNEL_ID);
+
+      runtime.addUser(4, { micMuted: false, soundMuted: false });
+
+      const hidden: number[] = [];
+
+      const subscription = pubsub
+        .subscribeFor(4, ServerEvents.CHANNEL_DELETE)
+        .subscribe({
+          next: (channelId) => {
+            hidden.push(channelId);
+          }
+        });
+
+      try {
+        await caller.voice.disconnectUser({ userId: 4 });
+
+        expect(hidden).toEqual([PRIVATE_VOICE_CHANNEL_ID]);
+      } finally {
+        subscription.unsubscribe();
+        await runtime.destroy();
+      }
+    });
+
+    test('should reject when the caller lacks MOVE_MEMBERS', async () => {
+      const { caller } = await initTest(2);
+      const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+      runtime.addUser(4, { micMuted: false, soundMuted: false });
+
+      try {
+        await expect(
+          caller.voice.disconnectUser({ userId: 4 })
+        ).rejects.toThrow('Insufficient permissions');
+
+        expect(runtime.getUser(4)).toBeDefined();
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should reject an unknown user', async () => {
+      const { caller } = await initTest(1);
+
+      await expect(
+        caller.voice.disconnectUser({ userId: 999999 })
+      ).rejects.toThrow('User not found');
+    });
+
+    test('should not let a moderator disconnect the owner', async () => {
+      await grantToModeratorRole(Permission.MOVE_MEMBERS);
+
+      const { caller } = await initTest(MODERATOR_USER_ID);
+      const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+      runtime.addUser(1, { micMuted: false, soundMuted: false });
+
+      try {
+        await expect(
+          caller.voice.disconnectUser({ userId: 1 })
+        ).rejects.toThrow(
+          'Only users with the owner role can act on the server owner.'
+        );
+
+        expect(runtime.getUser(1)).toBeDefined();
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should let a moderator disconnect a regular user', async () => {
+      await grantToModeratorRole(Permission.MOVE_MEMBERS);
+
+      const { caller } = await initTest(MODERATOR_USER_ID);
+      const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+      runtime.addUser(4, { micMuted: false, soundMuted: false });
+
+      try {
+        await caller.voice.disconnectUser({ userId: 4 });
+
+        expect(runtime.getUser(4)).toBeUndefined();
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should reject when the user is not in a voice channel', async () => {
+      const { caller } = await initTest(1);
+
+      await expect(caller.voice.disconnectUser({ userId: 4 })).rejects.toThrow(
+        'User is not in a voice channel'
+      );
+    });
+
+    // answered like a user in no call, so the caller learns nothing about the hidden channel
+    test('should not let a moderator disconnect someone from a channel they cannot see', async () => {
+      await grantToModeratorRole(Permission.MOVE_MEMBERS);
+
+      const { caller } = await initTest(MODERATOR_USER_ID);
+      const runtime = new VoiceRuntime(PRIVATE_VOICE_CHANNEL_ID);
+
+      runtime.addUser(4, { micMuted: false, soundMuted: false });
+
+      try {
+        await expect(
+          caller.voice.disconnectUser({ userId: 4 })
+        ).rejects.toThrow('User is not in a voice channel');
+
+        expect(runtime.getUser(4)).toBeDefined();
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should let a moderator disconnect someone from a private channel they can see', async () => {
+      await grantToModeratorRole(Permission.MOVE_MEMBERS);
+      await tdb.insert(channelRolePermissions).values({
+        channelId: PRIVATE_VOICE_CHANNEL_ID,
+        roleId: MODERATOR_ROLE_ID,
+        permission: ChannelPermission.VIEW_CHANNEL,
+        allow: true,
+        createdAt: Date.now()
+      });
+
+      const { caller } = await initTest(MODERATOR_USER_ID);
+      const runtime = new VoiceRuntime(PRIVATE_VOICE_CHANNEL_ID);
+
+      runtime.addUser(4, { micMuted: false, soundMuted: false });
+
+      try {
+        await caller.voice.disconnectUser({ userId: 4 });
+
+        expect(runtime.getUser(4)).toBeUndefined();
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should reject when the user is in a dm call', async () => {
+      const { caller } = await initTest(1);
+      const dmRuntime = new VoiceRuntime(DM_CHANNEL_ID);
+
+      dmRuntime.addUser(4, { micMuted: false, soundMuted: false });
+
+      try {
+        await expect(
+          caller.voice.disconnectUser({ userId: 4 })
+        ).rejects.toThrow('User is not in a voice channel');
+
+        expect(dmRuntime.getUser(4)).toBeDefined();
+      } finally {
+        await dmRuntime.destroy();
+      }
+    });
+
+    test('should reject a user id that is not a positive integer', async () => {
+      const { caller } = await initTest(1);
+
+      await expect(
+        caller.voice.disconnectUser({ userId: 0 })
+      ).rejects.toThrow();
+      await expect(
+        caller.voice.disconnectUser({ userId: 1.5 })
+      ).rejects.toThrow();
+      await expect(
+        // @ts-expect-error - testing invalid input
+        caller.voice.disconnectUser({ userId: 'four' })
+      ).rejects.toThrow();
+    });
+
+    test('should rate limit repeated disconnects', async () => {
+      const { caller } = await initTest(2);
+
+      for (let i = 0; i < config.rateLimiters.moveMembers.maxRequests; i++) {
+        await caller.voice.disconnectUser({ userId: 4 }).catch(() => {});
+      }
+
+      await expect(caller.voice.disconnectUser({ userId: 4 })).rejects.toThrow(
+        'Too many requests. Please try again shortly.'
+      );
+    });
+  });
+
+  describe('setServerMute', () => {
+    test('should mute the user in their call and tell everyone', async () => {
+      const { caller } = await initTest(1);
+      const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+      runtime.addUser(4, { micMuted: false, soundMuted: false });
+
+      const publish = spyOn(pubsub, 'publish');
+
+      try {
+        await caller.voice.setServerMute({ userId: 4, muted: true });
+
+        expect(VoiceRuntime.isServerMuted(4)).toBe(true);
+        expect(runtime.getUserState(4)).toMatchObject({
+          micMuted: true,
+          serverMuted: true
+        });
+        expect(publish).toHaveBeenCalledWith(
+          ServerEvents.USER_VOICE_STATE_UPDATE,
+          expect.objectContaining({
+            channelId: VOICE_CHANNEL_ID,
+            userId: 4,
+            state: expect.objectContaining({ serverMuted: true })
+          })
+        );
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should lift the mute and leave the microphone to the user', async () => {
+      const { caller } = await initTest(1);
+      const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+      runtime.addUser(4, { micMuted: false, soundMuted: false });
+
+      try {
+        await caller.voice.setServerMute({ userId: 4, muted: true });
+        await caller.voice.setServerMute({ userId: 4, muted: false });
+
+        expect(VoiceRuntime.isServerMuted(4)).toBe(false);
+        expect(runtime.getUserState(4).serverMuted).toBe(false);
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should keep the mute for a user who is not in a call until they join', async () => {
+      const { caller } = await initTest(1);
+
+      await caller.voice.setServerMute({ userId: 4, muted: true });
+
+      const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+      runtime.addUser(4, { micMuted: false, soundMuted: false });
+
+      try {
+        expect(runtime.getUserState(4)).toMatchObject({
+          micMuted: true,
+          serverMuted: true
+        });
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should reject when the caller lacks MOVE_MEMBERS', async () => {
+      const { caller } = await initTest(2);
+
+      await expect(
+        caller.voice.setServerMute({ userId: 4, muted: true })
+      ).rejects.toThrow('Insufficient permissions');
+
+      expect(VoiceRuntime.isServerMuted(4)).toBe(false);
+    });
+
+    test('should reject an unknown user', async () => {
+      const { caller } = await initTest(1);
+
+      await expect(
+        caller.voice.setServerMute({ userId: 999999, muted: true })
+      ).rejects.toThrow('User not found');
+
+      expect(VoiceRuntime.isServerMuted(999999)).toBe(false);
+    });
+
+    test('should not let a moderator mute the owner', async () => {
+      await grantToModeratorRole(Permission.MOVE_MEMBERS);
+
+      const { caller } = await initTest(MODERATOR_USER_ID);
+
+      await expect(
+        caller.voice.setServerMute({ userId: 1, muted: true })
+      ).rejects.toThrow(
+        'Only users with the owner role can act on the server owner.'
+      );
+
+      expect(VoiceRuntime.isServerMuted(1)).toBe(false);
+    });
+
+    test('should let a moderator mute a regular user', async () => {
+      await grantToModeratorRole(Permission.MOVE_MEMBERS);
+
+      const { caller } = await initTest(MODERATOR_USER_ID);
+
+      await caller.voice.setServerMute({ userId: 4, muted: true });
+
+      expect(VoiceRuntime.isServerMuted(4)).toBe(true);
+    });
+
+    test('should not let a moderator mute someone in a channel they cannot see', async () => {
+      await grantToModeratorRole(Permission.MOVE_MEMBERS);
+
+      const { caller } = await initTest(MODERATOR_USER_ID);
+      const runtime = new VoiceRuntime(PRIVATE_VOICE_CHANNEL_ID);
+
+      runtime.addUser(4, { micMuted: false, soundMuted: false });
+
+      try {
+        await expect(
+          caller.voice.setServerMute({ userId: 4, muted: true })
+        ).rejects.toThrow(
+          'You cannot server mute someone in a voice channel you cannot see'
+        );
+
+        expect(VoiceRuntime.isServerMuted(4)).toBe(false);
+        expect(runtime.getUserState(4).serverMuted).toBe(false);
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should let a moderator lift the mute of someone in a channel they cannot see', async () => {
+      await grantToModeratorRole(Permission.MOVE_MEMBERS);
+
+      VoiceRuntime.setServerMuted(4, true);
+
+      const { caller } = await initTest(MODERATOR_USER_ID);
+      const runtime = new VoiceRuntime(PRIVATE_VOICE_CHANNEL_ID);
+
+      runtime.addUser(4, { micMuted: false, soundMuted: false });
+
+      try {
+        await caller.voice.setServerMute({ userId: 4, muted: false });
+
+        expect(VoiceRuntime.isServerMuted(4)).toBe(false);
+        expect(runtime.getUserState(4).serverMuted).toBe(false);
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should reject invalid input', async () => {
+      const { caller } = await initTest(1);
+
+      await expect(
+        // @ts-expect-error - testing invalid input
+        caller.voice.setServerMute({ userId: 4, muted: 'yes' })
+      ).rejects.toThrow();
+      await expect(
+        // @ts-expect-error - testing invalid input
+        caller.voice.setServerMute({ userId: 4 })
+      ).rejects.toThrow();
+      await expect(
+        caller.voice.setServerMute({ userId: -4, muted: true })
+      ).rejects.toThrow();
+
+      expect(VoiceRuntime.isServerMuted(4)).toBe(false);
+    });
+
+    test('should rate limit repeated mutes', async () => {
+      const { caller } = await initTest(2);
+
+      for (let i = 0; i < config.rateLimiters.moveMembers.maxRequests; i++) {
+        await caller.voice
+          .setServerMute({ userId: 4, muted: true })
+          .catch(() => {});
+      }
+
+      await expect(
+        caller.voice.setServerMute({ userId: 4, muted: true })
+      ).rejects.toThrow('Too many requests. Please try again shortly.');
     });
   });
 

@@ -1,6 +1,8 @@
 {
   "closeVoiceChat": "Cerrar chat de voz",
   "openVoiceChat": "Abrir chat de voz",
+  "backToCall": "Volver a la llamada",
+  "resizeVoiceChat": "Arrastra para cambiar el tamaño del chat",
   "closeMembersSidebar": "Cerrar barra lateral de miembros",
   "openMembersSidebar": "Abrir barra lateral de miembros",
   "searchContent": "Buscar contenido...",

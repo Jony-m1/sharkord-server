@@ -1,6 +1,8 @@
 {
   "closeVoiceChat": "Zavřít hlasový chat",
   "openVoiceChat": "Otevřít hlasový chat",
+  "backToCall": "Zpět do hovoru",
+  "resizeVoiceChat": "Přetažením změníte velikost chatu",
   "closeMembersSidebar": "Zavřít seznam členů",
   "openMembersSidebar": "Otevřít seznam členů",
   "searchContent": "Hledat obsah...",

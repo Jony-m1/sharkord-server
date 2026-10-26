@@ -1,6 +1,7 @@
 import { SettingsSection } from '@/components/server-screens/settings-shell/section';
 import { useSettingsForm } from '@/components/server-screens/settings-shell/use-settings-form';
 import { useAdminStorage } from '@/features/server/admin/hooks';
+import { clamp } from '@/helpers/clamp';
 import { getTRPCClient } from '@/lib/trpc';
 import {
   STORAGE_DEFAULT_IMAGE_OPTIMIZATION_QUALITY,
@@ -57,9 +58,6 @@ import {
   SIGNED_URLS_TTL_PRESETS
 } from './presets';
 import { StorageSizeControl } from './storage-size-control';
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.max(min, Math.min(value, max));
 
 const INITIAL_VALUES: TStorageSettings = {
   storageOverflowAction: STORAGE_OVERFLOW_ACTION,

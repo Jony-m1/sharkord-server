@@ -10,7 +10,7 @@ import { getFileUrl } from '@/helpers/get-file-url';
 import { LocalStorageKey } from '@/helpers/storage';
 import { cn } from '@/lib/utils';
 import { TestId } from '@sharkord/shared';
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import { Categories } from './categories';
 import { DirectMessages } from './direct-messages';
 import { DmButton } from './direct-messages/dm-button';
@@ -35,11 +35,16 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
   const dmsOpen = useDmsOpen();
   const threadsOpen = useThreadsOpen();
   const publicSettings = usePublicServerSettings();
-  // across the top with the name over it, as on Discord
+  // across the top with the name over it, as on Discord. the name and the menu keep their own 48px
+  // row at the top either way, so they share a centre line with each other and the channel header
   const bannerUrl = getFileUrl(publicSettings?.banner);
 
   useRestoreLastSelectedChannel();
   useFollowVoiceMove();
+
+  const handleServerNameClick = useCallback(() => {
+    setSelectedChannelId(undefined);
+  }, []);
 
   let content = <Categories />;
 
@@ -60,9 +65,10 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
       data-testid={TestId.LEFT_SIDEBAR}
     >
       <div
+        data-testid={TestId.SERVER_HEADER}
         className={cn(
-          'relative flex w-full shrink-0 justify-between border-b border-border px-4',
-          bannerUrl ? 'h-36 items-start pt-2.5' : 'h-12 items-center'
+          'relative w-full shrink-0 border-b border-border',
+          bannerUrl ? 'h-36' : 'h-12'
         )}
       >
         {bannerUrl && (
@@ -76,18 +82,20 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/70 via-black/15 to-transparent" />
           </>
         )}
-        <h2
-          className={cn(
-            'relative font-semibold text-foreground truncate cursor-pointer',
-            bannerUrl && 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]'
-          )}
-          onClick={() => setSelectedChannelId(undefined)}
-          data-testid={TestId.LEFT_SIDEBAR_SERVER_NAME}
-        >
-          {serverName}
-        </h2>
-        <div className="relative">
-          <ServerDropdownMenu />
+        <div className="relative flex h-12 items-center justify-between px-4">
+          <h2
+            className={cn(
+              'min-w-0 font-semibold text-foreground truncate cursor-pointer',
+              bannerUrl && 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]'
+            )}
+            onClick={handleServerNameClick}
+            data-testid={TestId.LEFT_SIDEBAR_SERVER_NAME}
+          >
+            {serverName}
+          </h2>
+          <div className="relative shrink-0">
+            <ServerDropdownMenu />
+          </div>
         </div>
       </div>
       <div className="space-y-0.5 border-b border-border px-2 py-2">

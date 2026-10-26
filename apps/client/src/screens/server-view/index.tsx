@@ -4,42 +4,59 @@ import { Protect } from '@/components/protect';
 import { RightSidebar } from '@/components/right-sidebar';
 import { ThreadSidebar } from '@/components/thread-sidebar';
 import { TopBar } from '@/components/top-bar';
-import { VoiceChatSidebar } from '@/components/voice-chat-sidebar';
 import { VoiceProvider } from '@/components/voice-provider';
-import { useSelectedDmChannelId, useThreadSidebar } from '@/features/app/hooks';
+import {
+  closeSelectedThread,
+  closeVoiceChatSidebar,
+  setMembersDrawerOpen
+} from '@/features/app/actions';
+import {
+  useIsMembersDrawerOpen,
+  useSelectedDmChannelId,
+  useThreadSidebar
+} from '@/features/app/hooks';
 import { closeMobileContent, setDmsOpen } from '@/features/server/actions';
-import { setSelectedChannelId } from '@/features/server/channels/actions';
+import { useVisibleVoiceChatChannelId } from '@/features/server/channels/hooks';
 import {
   useDmsOpen,
   useIsMobileContentOpen,
+  useIsThreadOverConversation,
   usePublicServerSettings
 } from '@/features/server/hooks';
+import { isPhoneLayout } from '@/helpers/is-phone-layout';
 import {
   getLocalStorageItemBool,
   LocalStorageKey,
   setLocalStorageItemBool
 } from '@/helpers/storage';
-import { isPhoneLayout } from '@/helpers/is-phone-layout';
 import { useSwipeGestures } from '@/hooks/use-swipe-gestures';
 import { cn } from '@/lib/utils';
 import { Permission, TestId } from '@sharkord/shared';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { ContentWrapper } from './content-wrapper';
+import { useIsMembersDrawer } from './hooks/use-is-members-drawer';
 import { PreventBrowser } from './prevent-browser';
+
+// the list, the members drawer and its overlay move together, on the compositor only, with the
+// curve the call's chat slides in with. closeMobileContent waits the same 260ms
+const SLIDE_MOTION =
+  'duration-[260ms] ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none';
 
 const ServerView = memo(() => {
   // on a phone the channel list is a full screen of its own, which slides away while a
   // conversation is open and comes back when it is closed
   const isMobileContentOpen = useIsMobileContentOpen();
-  const [isMobileUsersOpen, setIsMobileUsersOpen] = useState(false);
+  const isThreadOverConversation = useIsThreadOverConversation();
+  const isMembersDrawer = useIsMembersDrawer();
+  const isMembersDrawerOpen = useIsMembersDrawerOpen();
   const [isDesktopRightSidebarOpen, setIsDesktopRightSidebarOpen] = useState(
     getLocalStorageItemBool(LocalStorageKey.RIGHT_SIDEBAR_STATE, true)
   );
   const dmsOpen = useDmsOpen();
   const selectedDmChannelId = useSelectedDmChannelId();
   const publicSettings = usePublicServerSettings();
-  const previousServerChannelIdRef = useRef<number | undefined>(undefined);
   const { isOpen: isThreadSidebarOpen } = useThreadSidebar();
+  const visibleVoiceChatChannelId = useVisibleVoiceChatChannelId();
 
   const handleDesktopRightSidebarToggle = useCallback(() => {
     setIsDesktopRightSidebarOpen((prev) => !prev);
@@ -49,34 +66,57 @@ const ServerView = memo(() => {
     );
   }, [isDesktopRightSidebarOpen]);
 
-  // swiping right goes back a screen (members, then the conversation), as on Discord
+  // swiping right goes back a screen (members, then a thread or a call's chat, then the
+  // conversation), as on Discord. on a phone the call's chat is a screen of its own over the call
   const handleSwipeRight = useCallback(() => {
-    if (isMobileUsersOpen) {
-      setIsMobileUsersOpen(false);
+    if (isMembersDrawer && isMembersDrawerOpen) {
+      setMembersDrawerOpen(false);
 
       return;
     }
 
-    if (isMobileContentOpen && isPhoneLayout()) {
-      closeMobileContent();
+    if (!isMobileContentOpen || !isPhoneLayout()) return;
+
+    // back to the conversation the thread was opened from, as its close button goes
+    if (isThreadOverConversation) {
+      closeSelectedThread();
+
+      return;
     }
-  }, [isMobileContentOpen, isMobileUsersOpen]);
+
+    if (visibleVoiceChatChannelId !== undefined) {
+      closeVoiceChatSidebar();
+
+      return;
+    }
+
+    closeMobileContent();
+  }, [
+    isMembersDrawer,
+    isMembersDrawerOpen,
+    isMobileContentOpen,
+    isThreadOverConversation,
+    visibleVoiceChatChannelId
+  ]);
 
   const handleSwipeLeft = useCallback(() => {
-    if (isMobileUsersOpen) {
-      setIsMobileUsersOpen(false);
+    // from lg up the members are a column the top bar opens, which a swipe could not close
+    if (!isMembersDrawer) return;
+
+    if (isMembersDrawerOpen) {
+      setMembersDrawerOpen(false);
 
       return;
     }
 
     // on a phone the members belong to a conversation, not to the list
     if (isMobileContentOpen || !isPhoneLayout()) {
-      setIsMobileUsersOpen(true);
+      setMembersDrawerOpen(true);
     }
-  }, [isMobileContentOpen, isMobileUsersOpen]);
+  }, [isMembersDrawer, isMembersDrawerOpen, isMobileContentOpen]);
 
-  const handleUsersOverlayClick = useCallback(() => {
-    setIsMobileUsersOpen(false);
+  const handleMembersOverlayClick = useCallback(() => {
+    setMembersDrawerOpen(false);
   }, []);
 
   const swipeHandlers = useSwipeGestures({
@@ -84,13 +124,10 @@ const ServerView = memo(() => {
     onSwipeLeft: handleSwipeLeft
   });
 
+  // setDmsOpen goes back to the channel from before the DMs
   useEffect(() => {
     if (publicSettings?.directMessagesEnabled === false && dmsOpen) {
       setDmsOpen(false);
-
-      if (previousServerChannelIdRef.current) {
-        setSelectedChannelId(previousServerChannelIdRef.current);
-      }
     }
   }, [publicSettings?.directMessagesEnabled, dmsOpen]);
 
@@ -108,16 +145,22 @@ const ServerView = memo(() => {
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
           <PreventBrowser />
 
-          {isMobileUsersOpen && (
-            <div
-              className="lg:hidden fixed inset-0 bg-black/50 z-30"
-              onClick={handleUsersOverlayClick}
-            />
-          )}
+          <div
+            data-testid={TestId.MEMBERS_OVERLAY}
+            className={cn(
+              'lg:hidden fixed inset-0 bg-black/50 z-30 transition-opacity',
+              SLIDE_MOTION,
+              isMembersDrawerOpen
+                ? 'opacity-100'
+                : 'pointer-events-none opacity-0'
+            )}
+            onClick={handleMembersOverlayClick}
+          />
 
           <LeftSidebar
             className={cn(
-              'md:relative md:flex fixed inset-0 left-0 h-full z-40 md:z-0 max-md:w-full! transition-transform duration-300 ease-in-out',
+              'md:relative md:flex fixed inset-0 left-0 h-full z-40 md:z-0 max-md:w-full! transition-transform',
+              SLIDE_MOTION,
               isMobileContentOpen
                 ? '-translate-x-full md:translate-x-0'
                 : 'translate-x-0'
@@ -129,19 +172,18 @@ const ServerView = memo(() => {
             selectedDmChannelId={selectedDmChannelId}
           />
 
-          <VoiceChatSidebar />
-
           <ThreadSidebar isOpen={isThreadSidebarOpen} />
 
           <RightSidebar
             className={cn(
-              'fixed top-0 bottom-0 right-0 h-full z-40',
+              'fixed top-0 bottom-0 right-0 h-full z-40 transition-transform',
               'lg:relative lg:z-0',
-              isMobileUsersOpen
-                ? 'translate-x-0 lg:translate-x-0'
+              SLIDE_MOTION,
+              isMembersDrawerOpen
+                ? 'translate-x-0'
                 : 'translate-x-full lg:translate-x-0'
             )}
-            isOpen={isMobileUsersOpen || isDesktopRightSidebarOpen}
+            isOpen={isMembersDrawer || isDesktopRightSidebarOpen}
           />
 
           <Protect permission={Permission.MANAGE_USERS}>

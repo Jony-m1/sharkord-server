@@ -4,7 +4,8 @@ import { useChannelCan } from '@/features/server/hooks';
 import {
   useIsUserAfk,
   useOwnPublicUser,
-  useOwnUserId
+  useOwnUserId,
+  useUserStatusLabel
 } from '@/features/server/users/hooks';
 import { useVoice } from '@/features/server/voice/hooks';
 import { getTRPCClient } from '@/lib/trpc';
@@ -34,6 +35,7 @@ const UserControl = memo(() => {
   const channelCan = useChannelCan(currentVoiceChannelId);
   const ownUserId = useOwnUserId();
   const isAfk = useIsUserAfk(ownUserId ?? null);
+  const statusLabel = useUserStatusLabel(ownUserId ?? -1);
 
   const handleAfkClick = useCallback(async () => {
     try {
@@ -58,8 +60,11 @@ const UserControl = memo(() => {
   if (!ownPublicUser) return null;
 
   return (
-    <div className="flex items-center justify-between h-14 px-2 bg-muted/20 border-t border-border">
-      <UserPopover userId={ownPublicUser.id}>
+    <div
+      data-testid={TestId.USER_CONTROL}
+      className="flex items-center justify-between h-14 px-2 bg-muted/20 border-t border-border"
+    >
+      <UserPopover userId={ownPublicUser.id} side="top" align="start">
         <div className="flex items-center space-x-2 min-w-0 flex-1 cursor-pointer hover:bg-muted/30 rounded-md p-1 transition-colors">
           <UserAvatar
             userId={ownPublicUser.id}
@@ -71,8 +76,8 @@ const UserControl = memo(() => {
               {ownPublicUser.name}
             </span>
             <div className="flex items-center space-x-1">
-              <span className="text-xs text-muted-foreground capitalize">
-                {isAfk ? t('afk') : ownPublicUser.status}
+              <span className="text-xs text-muted-foreground">
+                {statusLabel}
               </span>
             </div>
           </div>

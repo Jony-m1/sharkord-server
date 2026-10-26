@@ -1,6 +1,8 @@
 {
   "closeVoiceChat": "Закрыть голосовой чат",
   "openVoiceChat": "Открыть голосовой чат",
+  "backToCall": "Вернуться к звонку",
+  "resizeVoiceChat": "Перетащите, чтобы изменить размер чата",
   "closeMembersSidebar": "Закрыть боковую панель участников",
   "openMembersSidebar": "Открыть боковую панель участников",
   "searchContent": "Поиск по содержимому...",

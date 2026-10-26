@@ -5,7 +5,7 @@ import { useCan } from '@/features/server/hooks';
 import type { TVoiceUser } from '@/features/server/types';
 import { useIsOwnUser, useIsUserAfk } from '@/features/server/users/hooks';
 import { useSpeakingState } from '@/features/server/voice/hooks';
-import { Permission, PluginSlot } from '@sharkord/shared';
+import { Permission, PluginSlot, TestId } from '@sharkord/shared';
 import { cn } from '@sharkord/ui';
 import {
   HeadphoneOff,
@@ -62,6 +62,8 @@ const VoiceUser = memo(
 
     const userRow = (
       <div
+        data-testid={TestId.SIDEBAR_VOICE_USER}
+        data-user-id={user.id}
         draggable={canMove}
         onDragStart={canMove ? handleDragStart : undefined}
         className={cn(
@@ -72,7 +74,7 @@ const VoiceUser = memo(
         <UserAvatar
           userId={user.id}
           className={cn('h-5 w-5', isActivelySpeaking && speakingEffectClass)}
-          showUserPopover={true}
+          showUserPopover={false}
           showStatusBadge={false}
         />
 

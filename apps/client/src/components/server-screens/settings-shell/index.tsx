@@ -86,8 +86,10 @@ const SettingsShell = memo(
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key !== 'Escape') return;
 
-        // the topmost surface owns escape: a dialog or the mod view closes itself first
-        if (isModViewOpen || isDialogOpen) return;
+        // the topmost surface owns escape: a dialog or the mod view closes itself first. radix
+        // closes its layer from a capture listener and marks the event handled, and the state
+        // read below can already say closed by the time this bubble listener runs
+        if (e.defaultPrevented || isModViewOpen || isDialogOpen) return;
 
         handleClose();
       };
@@ -99,7 +101,7 @@ const SettingsShell = memo(
 
     return (
       <SettingsFormContext.Provider value={setForm}>
-        <div className="flex h-dvh flex-col bg-background text-foreground dark">
+        <div className="flex h-dvh flex-col bg-background text-foreground dark animate-in fade-in-0 zoom-in-[0.98] duration-150 motion-reduce:animate-none">
           <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
             <Button variant="ghost" size="icon" onClick={handleClose}>
               <ChevronLeft className="h-5 w-5" />
@@ -138,7 +140,11 @@ const SettingsShell = memo(
               </div>
 
               {form?.isDirty && (
-                <SaveBar isSaving={form.isSaving} save={form.save} />
+                <SaveBar
+                  isSaving={form.isSaving}
+                  save={form.save}
+                  discard={form.discard}
+                />
               )}
             </main>
           </div>

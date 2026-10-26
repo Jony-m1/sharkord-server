@@ -55,6 +55,15 @@ export const channelByIdSelector = createCachedSelector(
   (channelsMap, channelId) => channelsMap[channelId]
 )((_, channelId: number) => channelId);
 
+// the voice channels of the server itself: a dm call is never one, so it is never a move target
+export const serverVoiceChannelsSelector = createSelector(
+  [channelsSelector],
+  (channels) =>
+    channels.filter(
+      (channel) => channel.type === ChannelType.VOICE && !channel.isDm
+    )
+);
+
 export const channelsByCategoryIdSelector = createCachedSelector(
   [channelsSelector, (_: IRootState, categoryId: number) => categoryId],
   (channels, categoryId) =>

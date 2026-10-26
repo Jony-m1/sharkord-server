@@ -16,6 +16,7 @@ type TUseScrollControllerReturn = {
   scrollToBottom: () => void;
   onAsyncContentLoaded: () => void;
   isAtBottom: () => boolean;
+  loadOlderKeepingPosition: (load: () => Promise<unknown>) => void;
 };
 
 const SCROLL_THRESHOLD = 80;
@@ -52,6 +53,26 @@ const useScrollController = ({
     });
   }, []);
 
+  // a page put in above the list pushes what is on screen down, and chrome does no scroll
+  // anchoring at scrollTop 0, so the distance from the end is put back once the page is in.
+  // without that the view stays at the top, which asks for the next page straight away
+  const loadOlderKeepingPosition = useCallback(
+    (load: () => Promise<unknown>) => {
+      const container = containerRef.current;
+
+      if (!container) return;
+
+      const previousDistanceFromEnd =
+        container.scrollHeight - container.scrollTop;
+
+      load().then(() => {
+        container.scrollTop = container.scrollHeight - previousDistanceFromEnd;
+        shouldStickToBottom.current = isNearBottom(container);
+      });
+    },
+    [isNearBottom]
+  );
+
   // detect scroll-to-top and load more messages
   const onScroll = useCallback(() => {
     const container = containerRef.current;
@@ -65,15 +86,9 @@ const useScrollController = ({
     if (fetching) return;
 
     if (container.scrollTop <= SCROLL_THRESHOLD && hasMore) {
-      const previousDistanceFromEnd =
-        container.scrollHeight - container.scrollTop;
-
-      loadMore().then(() => {
-        container.scrollTop = container.scrollHeight - previousDistanceFromEnd;
-        shouldStickToBottom.current = isNearBottom(container);
-      });
+      loadOlderKeepingPosition(loadMore);
     }
-  }, [loadMore, hasMore, fetching, isNearBottom]);
+  }, [loadMore, hasMore, fetching, isNearBottom, loadOlderKeepingPosition]);
 
   // Handle initial scroll after messages load
   useEffect(() => {
@@ -186,7 +201,8 @@ const useScrollController = ({
     onScroll,
     scrollToBottom,
     onAsyncContentLoaded,
-    isAtBottom
+    isAtBottom,
+    loadOlderKeepingPosition
   };
 };
 

@@ -13,9 +13,8 @@ const startDmWith = async (page: Page, name: string) => {
   await page.getByTestId(TestId.MEMBER_ITEM).filter({ hasText: name }).click();
   await page.getByTestId(TestId.USER_POPOVER_DM).click();
 
-  // the popover stays open, and dismissing it by clicking the composer hands focus back to
-  // the member list partway through typing, so it is closed before anything is typed
-  await page.keyboard.press('Escape');
+  // the card closes itself once the dm is open. it hands focus back to the member list as it
+  // goes, so nothing is typed before it is gone
   await expect(page.getByTestId(TestId.USER_POPOVER_DM)).toBeHidden();
 };
 

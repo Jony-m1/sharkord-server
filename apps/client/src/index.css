@@ -126,6 +126,34 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* on a touch screen the app behaves like an app, not a page: a double tap does not zoom and a
+     held finger opens the app's own menus (the message sheet) instead of selecting interface
+     text or previewing a link. what you type stays selectable */
+  @media (pointer: coarse) {
+    html {
+      touch-action: manipulation;
+    }
+
+    body {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    input,
+    textarea,
+    [contenteditable='true'] {
+      -webkit-user-select: text;
+      user-select: text;
+      -webkit-touch-callout: default;
+    }
+
+    /* a picture opened full size is one to keep, so holding it still offers to save it */
+    #imagePortal img {
+      -webkit-touch-callout: default;
+    }
+  }
 }
 
 html,

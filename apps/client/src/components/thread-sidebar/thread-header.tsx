@@ -1,7 +1,7 @@
 import { useIsThreadFollowed } from '@/features/server/threads/hooks';
 import { useChannelLabel } from '@/hooks/use-channel-label';
 import { getTRPCClient } from '@/lib/trpc';
-import { getTrpcError } from '@sharkord/shared';
+import { getTrpcError, TestId } from '@sharkord/shared';
 import { IconButton } from '@sharkord/ui';
 import { Bell, BellOff, MessageSquareText, X } from 'lucide-react';
 import { memo, useCallback } from 'react';
@@ -57,6 +57,7 @@ const ThreadHeader = memo(
             variant="ghost"
             size="sm"
             className="rounded-md hover:bg-accent transition-colors"
+            data-testid={TestId.THREAD_CLOSE}
           />
         </div>
       </div>

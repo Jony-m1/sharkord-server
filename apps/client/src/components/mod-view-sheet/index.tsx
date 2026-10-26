@@ -2,22 +2,44 @@ import { setModViewOpen } from '@/features/app/actions';
 import { useModViewOpen } from '@/features/app/hooks';
 import { useAdminUserInfo } from '@/features/server/admin/hooks';
 import { extractUrls } from '@sharkord/shared';
-import { Sheet, SheetContent, SheetTitle } from '@sharkord/ui';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Sheet, SheetContent, SheetTitle, Skeleton } from '@sharkord/ui';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ModViewContext, ModViewScreen, type TModViewContext } from './context';
 import { ModViewContent } from './mod-view-content';
+
+const SKELETON_ROWS = [0, 1, 2, 3];
+
+// the shape of the header and the first card, so the sheet does not jump when they arrive
+const ModViewSkeleton = memo(() => (
+  <div className="space-y-4 p-4">
+    <div className="flex items-center gap-3">
+      <Skeleton className="h-12 w-12 rounded-full" />
+      <Skeleton className="h-5 w-40" />
+    </div>
+    <div className="flex gap-1.5">
+      <Skeleton className="h-8 w-20" />
+      <Skeleton className="h-8 w-20" />
+      <Skeleton className="h-8 w-20" />
+    </div>
+    <div className="border-t border-border" />
+    <div className="space-y-3 rounded-xl border p-4">
+      {SKELETON_ROWS.map((row) => (
+        <Skeleton key={row} className="block h-5 w-full" />
+      ))}
+    </div>
+  </div>
+));
 
 type TContentWrapperProps = {
   userId: number;
 };
 
 const ContentWrapper = memo(({ userId }: TContentWrapperProps) => {
-  const { t } = useTranslation('settings');
   const [currentView, setCurrentView] = useState<ModViewScreen | undefined>(
     undefined
   );
-  const { user, loading, refetch, logins, files, messages, storage } =
+  const { user, refetch, logins, files, messages, storage } =
     useAdminUserInfo(userId);
 
   const contextValue = useMemo<TModViewContext>(() => {
@@ -40,17 +62,13 @@ const ContentWrapper = memo(({ userId }: TContentWrapperProps) => {
     };
   }, [userId, refetch, files, storage, user, logins, messages, currentView]);
 
-  if (loading || !user) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">{t('modViewLoading')}</p>
-      </div>
-    );
-  }
+  // a refetch after a kick or a role change keeps showing what is there; only the first load,
+  // with nothing to show yet, gets the placeholder
+  if (!user) return <ModViewSkeleton />;
 
   return (
     <ModViewContext.Provider value={contextValue}>
-      <ModViewContent key={userId} />
+      <ModViewContent />
     </ModViewContext.Provider>
   );
 });
@@ -59,28 +77,19 @@ const ModViewSheet = memo(() => {
   const { t } = useTranslation('settings');
   const { isOpen, userId } = useModViewOpen();
 
-  const handleClose = useCallback(() => {
-    setModViewOpen(false);
+  // escape and a click on the overlay close it through here. radix only hands escape to the
+  // topmost layer, so a dialog opened from the sheet closes first
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open) setModViewOpen(false);
   }, []);
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        handleClose();
-      }
-    };
-
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [isOpen, handleClose]);
-
   return (
-    <Sheet defaultOpen={false} open={isOpen}>
-      <SheetContent close={handleClose}>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
+      <SheetContent aria-describedby={undefined}>
         <SheetTitle className="sr-only">{t('modViewTitle')}</SheetTitle>
-        {userId && <ContentWrapper userId={userId} />}
+        {userId !== undefined && (
+          <ContentWrapper key={userId} userId={userId} />
+        )}
       </SheetContent>
     </Sheet>
   );

@@ -242,7 +242,22 @@ const getSimulcastCodec = (
     (c) => c.mimeType.toLowerCase() === VideoCodec.VP8.toLowerCase()
   );
 
+// runs independent steps side by side, but only fails once every one of them has settled.
+// Promise.all would reject while a sibling is still creating a transport or a producer, and
+// the cleanup that follows a failure would then miss whatever that sibling creates afterwards
+const allSettledOrThrow = async (steps: Promise<unknown>[]) => {
+  const results = await Promise.allSettled(steps);
+  const failure = results.find(
+    (result): result is PromiseRejectedResult => result.status === 'rejected'
+  );
+
+  if (failure) {
+    throw failure.reason;
+  }
+};
+
 export {
+  allSettledOrThrow,
   getAfkDeafenChange,
   getRemoteConsumerTypeKey,
   getScreenShareSimulcastEncodings,

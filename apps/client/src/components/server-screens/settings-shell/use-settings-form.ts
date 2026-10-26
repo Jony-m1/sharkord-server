@@ -34,6 +34,11 @@ const useSettingsForm = <T extends Record<string, unknown>>({
     [setValues]
   );
 
+  // back to what was last loaded or saved
+  const discard = useCallback(() => {
+    setValues(baseline);
+  }, [setValues, baseline]);
+
   const save = useCallback(async () => {
     if (isSaving) return;
 
@@ -54,7 +59,7 @@ const useSettingsForm = <T extends Record<string, unknown>>({
   const handleRef = useRef<object | null>(null);
 
   useEffect(() => {
-    const handle = { isDirty, isSaving, save };
+    const handle = { isDirty, isSaving, save, discard };
 
     handleRef.current = handle;
     setSlot(handle);
@@ -63,9 +68,9 @@ const useSettingsForm = <T extends Record<string, unknown>>({
       // a sibling form may have claimed the slot already while this one was unmounting
       setSlot((current) => (current === handleRef.current ? null : current));
     };
-  }, [isDirty, isSaving, save, setSlot]);
+  }, [isDirty, isSaving, save, discard, setSlot]);
 
-  return { ...form, isDirty, isSaving, save, reset };
+  return { ...form, isDirty, isSaving, save, discard, reset };
 };
 
 export { useSettingsForm };

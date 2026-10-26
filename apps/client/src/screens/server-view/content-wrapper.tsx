@@ -3,7 +3,7 @@ import { VoiceChannel } from '@/components/channel-view/voice';
 import { MobileBackButton } from '@/components/mobile-back-button';
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { ThreadContent } from '@/components/thread-sidebar/thread-content';
-import { setSelectedThread } from '@/features/app/actions';
+import { closeSelectedThread } from '@/features/app/actions';
 import { useSelectedThread } from '@/features/app/hooks';
 import {
   useSelectedChannelId,
@@ -12,7 +12,7 @@ import {
 import { useActiveFullscreenPluginId } from '@/features/server/hooks';
 import { useThreadsOpen } from '@/features/server/threads/hooks';
 import { ChannelType, PluginSlot } from '@sharkord/shared';
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type TContentWrapperProps = {
@@ -28,8 +28,6 @@ const ContentWrapper = memo(
     const activeFullscreenPluginId = useActiveFullscreenPluginId();
     const threadsOpen = useThreadsOpen();
     const selectedThread = useSelectedThread();
-
-    const onCloseThread = useCallback(() => setSelectedThread(undefined), []);
 
     if (activeFullscreenPluginId) {
       return (
@@ -54,7 +52,7 @@ const ContentWrapper = memo(
             key={selectedThread.parentMessageId}
             parentMessageId={selectedThread.parentMessageId}
             channelId={selectedThread.channelId}
-            onClose={onCloseThread}
+            onClose={closeSelectedThread}
           />
         );
       } else {

@@ -42,6 +42,8 @@ function SheetOverlay({
   );
 }
 
+// close is only needed by a sheet whose Root has no onOpenChange: the close button already tells
+// the Root, and it sits on the whole button so the padding around the icon closes too
 function SheetContent({
   className,
   children,
@@ -50,7 +52,7 @@ function SheetContent({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: 'top' | 'right' | 'bottom' | 'left';
-  close: () => void;
+  close?: () => void;
 }) {
   return (
     <SheetPortal>
@@ -72,8 +74,11 @@ function SheetContent({
         {...props}
       >
         {children}
-        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
-          <XIcon className="size-4" onClick={close} />
+        <SheetPrimitive.Close
+          onClick={close}
+          className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none"
+        >
+          <XIcon className="size-4" />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>
       </SheetPrimitive.Content>

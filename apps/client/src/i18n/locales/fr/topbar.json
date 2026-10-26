@@ -1,6 +1,8 @@
 {
   "closeVoiceChat": "Fermer le chat vocal",
   "openVoiceChat": "Ouvrir le chat vocal",
+  "backToCall": "Retour à l'appel",
+  "resizeVoiceChat": "Faites glisser pour redimensionner le chat",
   "closeMembersSidebar": "Fermer le panneau latéral des membres",
   "openMembersSidebar": "Ouvrir le panneau latéral des membres",
   "searchContent": "Recherche de contenu...",

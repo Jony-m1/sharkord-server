@@ -8,6 +8,35 @@ import {
 
 const IDLE_TIMEOUT = 3000;
 
+// safari's own name for a video's fullscreen, the only kind an iphone has; not in the dom typings
+type TWebkitVideoElement = HTMLVideoElement & {
+  webkitEnterFullscreen?: () => void;
+};
+
+export const enterVideoFullscreen = (container: HTMLElement) => {
+  const video = container.querySelector<TWebkitVideoElement>('video');
+
+  if (!video || typeof video.webkitEnterFullscreen !== 'function') {
+    return false;
+  }
+
+  video.webkitEnterFullscreen();
+
+  // the player's done button pauses the video, and the tile has no controls to play it again,
+  // so a stream would stay frozen on its last frame. autoplay only starts a new stream
+  const resume = async () => {
+    try {
+      await video.play();
+    } catch {
+      // the tile keeps the frame it stopped on until the stream changes, as it did before
+    }
+  };
+
+  video.addEventListener('webkitendfullscreen', resume, { once: true });
+
+  return true;
+};
+
 export const useFullscreen = (containerRef: RefObject<HTMLElement | null>) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isOverlayVisible, setIsOverlayVisible] = useState(true);
@@ -61,16 +90,35 @@ export const useFullscreen = (containerRef: RefObject<HTMLElement | null>) => {
   }, [isFullscreen, containerRef, resetIdleTimer]);
 
   const toggleFullscreen = useCallback(async () => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+
+    if (!container) return;
+
+    if (document.fullscreenElement === container) {
+      try {
+        await document.exitFullscreen();
+      } catch {
+        console.warn('Fullscreen toggle failed');
+      }
+
+      return;
+    }
+
+    // an iphone has no fullscreen for elements, only the native player of a video, which also
+    // offers picture in picture and turns with the phone. it ends on its own done button
+    if (typeof container.requestFullscreen !== 'function') {
+      enterVideoFullscreen(container);
+
+      return;
+    }
 
     try {
-      if (document.fullscreenElement === containerRef.current) {
-        await document.exitFullscreen();
-      } else {
-        await containerRef.current.requestFullscreen();
-      }
+      await container.requestFullscreen();
     } catch {
-      console.warn('Fullscreen toggle failed');
+      // a web view can offer element fullscreen and still refuse it
+      if (!enterVideoFullscreen(container)) {
+        console.warn('Fullscreen toggle failed');
+      }
     }
   }, [containerRef]);
 

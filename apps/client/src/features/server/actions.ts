@@ -1,12 +1,14 @@
 import { Dialog } from '@/components/dialogs/dialogs';
 import { logDebug } from '@/helpers/browser-logger';
 import { getHostFromServer } from '@/helpers/get-file-url';
+import { isPhoneLayout } from '@/helpers/is-phone-layout';
 import { playSound } from '@/helpers/sounds';
 import { pushVoiceDebugEvent } from '@/helpers/voice-debug';
 import { i18n } from '@/i18n';
 import { cleanup, connectToTRPC, getTRPCClient } from '@/lib/trpc';
 import type { TMessageJumpToTarget } from '@/types';
 import {
+  ChannelType,
   type TLocale,
   type TPublicServerSettings,
   type TServerInfo
@@ -15,8 +17,10 @@ import { TRPCClientError } from '@trpc/client';
 import { toast } from 'sonner';
 import { appSliceActions } from '../app/slice';
 import { openDialog } from '../dialogs/actions';
-import { store } from '../store';
+import { store, type IRootState } from '../store';
+import { setSelectedChannelId } from './channels/actions';
 import {
+  channelByIdSelector,
   channelReadStateByIdSelector,
   currentVoiceChannelIdSelector,
   isChannelTextVisibleByIdSelector
@@ -31,7 +35,10 @@ import {
   activeFullscreenPluginIdSelector,
   connectedSelector,
   dmsOpenSelector,
-  infoSelector
+  infoSelector,
+  isMobileContentOpenSelector,
+  lastServerChannelIdSelector,
+  mobileContentClosingSelector
 } from './selectors';
 import { serverSliceActions } from './slice';
 import { threadsOpenSelector } from './threads/selectors';
@@ -51,8 +58,30 @@ export const setDisconnectInfo = (info: TDisconnectInfo | undefined) => {
   store.dispatch(serverSliceActions.setDisconnectInfo(info));
 };
 
+// leaving the DMs goes back to the channel that was open before them, as on Discord, selected
+// but not joined when it is a call. on a phone the list is the screen back lands on, so nothing
+// opens over it there
 export const setDmsOpen = (open: boolean) => {
+  const state = store.getState();
+  const wasOpen = dmsOpenSelector(state);
+  const lastServerChannelId = lastServerChannelIdSelector(state);
+
   store.dispatch(serverSliceActions.setDmsOpen(open));
+
+  if (
+    open ||
+    !wasOpen ||
+    lastServerChannelId === undefined ||
+    isPhoneLayout()
+  ) {
+    return;
+  }
+
+  const lastServerChannel = channelByIdSelector(state, lastServerChannelId);
+
+  if (!lastServerChannel) return;
+
+  setSelectedChannelId(lastServerChannelId);
 };
 
 export const setPublicServerSettings = (
@@ -69,30 +98,75 @@ export const setActiveFullscreenPluginId = (pluginId: string | undefined) => {
   store.dispatch(serverSliceActions.setActiveFullscreenPluginId(pluginId));
 };
 
-// back from the open conversation to the list on a phone (isMobileContentOpenSelector): it
-// closes whatever is open in the list that is showing, so tapping it again opens it again
-export const closeMobileContent = () => {
-  const state = store.getState();
-
+// the action that closes whatever is open in the list that is showing, so tapping it again opens
+// it again
+const getClearMobileContentAction = (state: IRootState) => {
   if (activeFullscreenPluginIdSelector(state)) {
-    setActiveFullscreenPluginId(undefined);
-
-    return;
+    return serverSliceActions.setActiveFullscreenPluginId(undefined);
   }
 
   if (threadsOpenSelector(state)) {
-    store.dispatch(appSliceActions.setSelectedThread(undefined));
-
-    return;
+    return appSliceActions.setSelectedThread(undefined);
   }
 
   if (dmsOpenSelector(state)) {
-    store.dispatch(appSliceActions.setSelectedDmChannelId(undefined));
+    return appSliceActions.setSelectedDmChannelId(undefined);
+  }
+
+  return serverSliceActions.setSelectedChannelId(undefined);
+};
+
+type TClearMobileContentAction = ReturnType<typeof getClearMobileContentAction>;
+
+// how long the list takes to slide back over the conversation, its duration-[260ms] in the
+// server view
+const MOBILE_LIST_SLIDE_MS = 260;
+
+let mobileContentCloseTimer: ReturnType<typeof setTimeout> | undefined;
+
+const finishClosingMobileContent = (clearAction: TClearMobileContentAction) => {
+  mobileContentCloseTimer = undefined;
+
+  const state = store.getState();
+
+  // opening something while the list slid back cancelled the close
+  if (!mobileContentClosingSelector(state)) return;
+
+  store.dispatch(clearAction);
+  store.dispatch(serverSliceActions.setMobileContentClosing(false));
+  // a call opened again from the list starts on the call, not on its chat, as on Discord. a
+  // phone never reads the saved state back, so it is not saved here
+  store.dispatch(appSliceActions.setVoiceChatSidebarOpen(false));
+};
+
+// back from the open conversation to the list on a phone (isMobileContentOpenSelector). the list
+// slides back over the conversation first and the conversation closes once it is covered, so
+// it does not blank out under the moving list. a timer rather than transitionend, because a
+// transition that never runs (reduced motion, a hidden page) would leave it open for good
+export const closeMobileContent = () => {
+  const state = store.getState();
+
+  if (!isMobileContentOpenSelector(state)) return;
+
+  // what back closes is decided when it is pressed: turning the threads or the DMs off while
+  // the list slides in must not move the close onto the server channel under them
+  const clearAction = getClearMobileContentAction(state);
+
+  if (!isPhoneLayout()) {
+    store.dispatch(clearAction);
 
     return;
   }
 
-  store.dispatch(serverSliceActions.setSelectedChannelId(undefined));
+  // a back can only follow another one once something was opened in between, which left the
+  // earlier timer running; it would close the new conversation part way through this slide
+  clearTimeout(mobileContentCloseTimer);
+
+  store.dispatch(serverSliceActions.setMobileContentClosing(true));
+  mobileContentCloseTimer = setTimeout(
+    () => finishClosingMobileContent(clearAction),
+    MOBILE_LIST_SLIDE_MS
+  );
 };
 
 export const connect = async () => {
@@ -283,13 +357,22 @@ export const jumpToMessage = (target: TMessageJumpToTarget) => {
     return;
   }
 
-  setDmsOpen(false);
+  // not setDmsOpen, which would select the channel from before the DMs on the way out
+  store.dispatch(serverSliceActions.setDmsOpen(false));
   store.dispatch(appSliceActions.setSelectedDmChannelId(undefined));
   store.dispatch(serverSliceActions.setSelectedChannelId(target.channelId));
 
   const state = store.getState();
+  const channel = channelByIdSelector(state, target.channelId);
 
-  if (isChannelTextVisibleByIdSelector(state, target.channelId)) {
+  // a call's messages are in its chat, which starts closed on a phone, so the jump opens it
+  if (channel?.type === ChannelType.VOICE && !target.parentMessageId) {
+    store.dispatch(appSliceActions.setVoiceChatSidebarOpen(true));
+  }
+
+  const nextState = store.getState();
+
+  if (isChannelTextVisibleByIdSelector(nextState, target.channelId)) {
     markChannelAsRead(target.channelId);
   }
 };

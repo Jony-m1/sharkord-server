@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@sharkord/ui';
-import { Menu } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from '../dialogs/dialogs';
@@ -45,6 +45,14 @@ const ServerDropdownMenu = memo(() => {
     }
   }, [t]);
 
+  const handleAddCategoryClick = useCallback(() => {
+    openDialog(Dialog.CREATE_CATEGORY);
+  }, []);
+
+  const handleServerSettingsClick = useCallback(() => {
+    openServerScreen(ServerScreen.SERVER_SETTINGS);
+  }, []);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -52,17 +60,18 @@ const ServerDropdownMenu = memo(() => {
           data-testid={TestId.SERVER_MENU_TRIGGER}
           variant="ghost"
           size="icon"
+          className="group/server-menu"
         >
-          <Menu className="h-4 w-4 text-muted-foreground" />
+          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-150 group-data-[state=open]/server-menu:rotate-180 motion-reduce:transition-none" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent align="end">
         <DropdownMenuLabel>{t('server')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <Protect permission={Permission.MANAGE_CATEGORIES}>
           <DropdownMenuItem
             data-testid={TestId.SERVER_MENU_ADD_CATEGORY}
-            onClick={() => openDialog(Dialog.CREATE_CATEGORY)}
+            onClick={handleAddCategoryClick}
           >
             {t('addCategory')}
           </DropdownMenuItem>
@@ -70,7 +79,7 @@ const ServerDropdownMenu = memo(() => {
         <Protect permission={serverSettingsPermissions}>
           <DropdownMenuItem
             data-testid={TestId.SERVER_MENU_SERVER_SETTINGS}
-            onClick={() => openServerScreen(ServerScreen.SERVER_SETTINGS)}
+            onClick={handleServerSettingsClick}
           >
             {t('serverSettings')}
           </DropdownMenuItem>

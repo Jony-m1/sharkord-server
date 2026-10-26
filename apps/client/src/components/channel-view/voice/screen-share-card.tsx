@@ -23,6 +23,7 @@ import {
   type TPinnedCard
 } from './hooks/use-pin-card-controller';
 import { useScreenShareZoom } from './hooks/use-screen-share-zoom';
+import { useTapToReveal } from './hooks/use-tap-to-reveal';
 import { useVideoStats } from './hooks/use-video-stats';
 import { useVoiceRefs } from './hooks/use-voice-refs';
 import { PictureInPictureButton } from './picture-in-picture-button';
@@ -122,6 +123,8 @@ const ScreenShareCard = memo(
       handleDoubleClick
     } = useFullscreen(containerRef);
 
+    const { isRevealed, toggleRevealed } = useTapToReveal();
+
     const handleToggleFullscreen = useCallback(() => {
       resetZoom();
       toggleFullscreen();
@@ -160,6 +163,7 @@ const ScreenShareCard = memo(
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onDoubleClick={handleDoubleClick}
+        onClick={toggleRevealed}
         style={{
           cursor: isFullscreen && !isOverlayVisible ? 'none' : getCursor()
         }}
@@ -190,7 +194,8 @@ const ScreenShareCard = memo(
             'absolute top-0 right-0 z-10 justify-end',
             density.inset,
             'hidden group-hover/screen-share-card:flex',
-            'has-[[data-state=open]]:flex'
+            'has-[[data-state=open]]:flex',
+            isRevealed && 'pointer-coarse:flex'
           )}
         >
           <div className={cardControlsClass(isCompact)}>
@@ -246,7 +251,8 @@ const ScreenShareCard = memo(
           className={cn(
             'absolute bottom-0 left-0 right-0',
             density.inset,
-            'hidden group-hover/screen-share-card:flex'
+            'hidden group-hover/screen-share-card:flex',
+            isRevealed && 'pointer-coarse:flex'
           )}
         >
           <div className={cardBadgeClass(isCompact)}>

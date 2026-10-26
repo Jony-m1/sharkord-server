@@ -25,6 +25,7 @@ import {
   type TPinnedCard
 } from './hooks/use-pin-card-controller';
 import { useScreenShareZoom } from './hooks/use-screen-share-zoom';
+import { useTapToReveal } from './hooks/use-tap-to-reveal';
 import { useVoiceRefs } from './hooks/use-voice-refs';
 import { PictureInPictureButton } from './picture-in-picture-button';
 import { PinButton } from './pin-button';
@@ -47,6 +48,7 @@ type TExternalStreamControlsProps = {
   videoRef: RefObject<HTMLVideoElement | null>;
   streamId: number;
   isCompact: boolean;
+  isRevealed: boolean;
 };
 
 const ExternalStreamControls = memo(
@@ -64,7 +66,8 @@ const ExternalStreamControls = memo(
     volumeKey,
     videoRef,
     streamId,
-    isCompact
+    isCompact,
+    isRevealed
   }: TExternalStreamControlsProps) => {
     const density = cardDensity(isCompact);
 
@@ -74,7 +77,8 @@ const ExternalStreamControls = memo(
           'absolute top-0 right-0 z-10 justify-end',
           density.inset,
           'hidden group-hover/external-stream-card:flex',
-          'has-[[data-state=open]]:flex'
+          'has-[[data-state=open]]:flex',
+          isRevealed && 'pointer-coarse:flex'
         )}
       >
         <div className={cardControlsClass(isCompact)}>
@@ -196,6 +200,8 @@ const ExternalStreamCard = memo(
       handleDoubleClick
     } = useFullscreen(containerRef);
 
+    const { isRevealed, toggleRevealed } = useTapToReveal();
+
     const handleToggleFullscreen = useCallback(() => {
       resetZoom();
       toggleFullscreen();
@@ -252,6 +258,7 @@ const ExternalStreamCard = memo(
         onMouseUp={hasVideo ? handleMouseUp : undefined}
         onMouseLeave={hasVideo ? handleMouseUp : undefined}
         onDoubleClick={hasVideo ? handleDoubleClick : undefined}
+        onClick={toggleRevealed}
         style={{
           cursor:
             isFullscreen && !isOverlayVisible
@@ -287,6 +294,7 @@ const ExternalStreamCard = memo(
           videoRef={externalVideoRef}
           streamId={streamId}
           isCompact={isCompact}
+          isRevealed={isRevealed}
         />
 
         {hasVideo ? (
@@ -330,7 +338,8 @@ const ExternalStreamCard = memo(
           className={cn(
             'absolute bottom-0 left-0 right-0 z-10',
             density.inset,
-            'hidden group-hover/external-stream-card:flex'
+            'hidden group-hover/external-stream-card:flex',
+            isRevealed && 'pointer-coarse:flex'
           )}
         >
           <div className={cardBadgeClass(isCompact)}>

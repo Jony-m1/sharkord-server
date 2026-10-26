@@ -4,6 +4,7 @@ import {
   useOwnUserId,
   useOwnUserRoleIds
 } from '@/features/server/users/hooks';
+import { useLongPress } from '@/hooks/use-long-press';
 import { cn } from '@/lib/utils';
 import {
   hasMention,
@@ -12,6 +13,7 @@ import {
   type TJoinedMessage
 } from '@sharkord/shared';
 import { memo, useCallback, useMemo, useState } from 'react';
+import { MessageActionSheet } from './message-action-sheet';
 import { MessageActions } from './message-actions';
 import { MessageEditInline } from './message-edit-inline';
 import { MessageRenderer } from './renderer';
@@ -45,6 +47,7 @@ const Message = memo(
     onEditComplete
   }: TMessageProps) => {
     const [isPencilEditing, setIsPencilEditing] = useState(false);
+    const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
     const isEditing = isPencilEditing || editingMessageId === message.id;
     const isFromOwnUser = useIsOwnUser(message.userId);
     const can = useCan();
@@ -71,6 +74,15 @@ const Message = memo(
       [onReplyMessageSelect, message]
     );
 
+    const openActionSheet = useCallback(() => setIsActionSheetOpen(true), []);
+
+    // a touch screen has no hover toolbar, so holding a finger on the message opens its
+    // actions instead. the edit box keeps the long press for selecting text
+    const canOpenActionSheet = !disableActions && !isEditing;
+    const longPressHandlers = useLongPress(
+      canOpenActionSheet ? openActionSheet : undefined
+    );
+
     const handleEditBlur = useCallback(() => {
       setIsPencilEditing(false);
 
@@ -85,10 +97,12 @@ const Message = memo(
           'min-w-0 flex-1 ml-1 relative hover:bg-secondary/50 rounded-md px-1 py-0.5 group',
           isActiveThread && 'bg-primary/10',
           isMentioned && 'border-primary bg-primary/5',
-          isInlineReplyTarget && 'ring-1 ring-primary/50 bg-primary/10'
+          isInlineReplyTarget && 'ring-1 ring-primary/50 bg-primary/10',
+          isActionSheetOpen && 'bg-secondary/50'
         )}
         data-testid={TestId.MESSAGE_ITEM}
         data-message-id={message.id}
+        {...longPressHandlers}
       >
         {!isEditing ? (
           <>
@@ -121,6 +135,16 @@ const Message = memo(
           </>
         ) : (
           <MessageEditInline message={message} onBlur={handleEditBlur} />
+        )}
+        {!disableActions && (
+          <MessageActionSheet
+            open={isActionSheetOpen}
+            onOpenChange={setIsActionSheetOpen}
+            message={message}
+            canManage={canManage}
+            onEdit={handleEdit}
+            onReply={handleReply}
+          />
         )}
       </div>
     );

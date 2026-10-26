@@ -14,6 +14,29 @@ const searchFilter = (file: TFile, term: string) =>
   file.originalName.toLowerCase().includes(term.toLowerCase()) ||
   file.extension.toLowerCase().includes(term.toLowerCase());
 
+type TFileRowProps = {
+  file: TFile;
+  onRemove: (fileId: number) => void;
+};
+
+const FileRow = memo(({ file, onRemove }: TFileRowProps) => {
+  const handleRemove = useCallback(() => {
+    onRemove(file.id);
+  }, [onRemove, file.id]);
+
+  return (
+    <FileCard
+      name={file.originalName}
+      extension={file.extension}
+      size={file.size}
+      onRemove={handleRemove}
+      href={getFileUrl(file)}
+    />
+  );
+});
+
+const getFileKey = (file: TFile) => file.id;
+
 const Files = memo(() => {
   const { t } = useTranslation('settings');
   const { files, refetch } = useModViewContext();
@@ -54,17 +77,9 @@ const Files = memo(() => {
       </PaginatedList.Empty>
       <PaginatedList.List<TFile>
         className="flex flex-col gap-2"
-        getItemKey={(file) => file.id}
+        getItemKey={getFileKey}
       >
-        {(file) => (
-          <FileCard
-            name={file.originalName}
-            extension={file.extension}
-            size={file.size}
-            onRemove={() => onRemoveClick(file.id)}
-            href={getFileUrl(file)}
-          />
-        )}
+        {(file) => <FileRow file={file} onRemove={onRemoveClick} />}
       </PaginatedList.List>
       <PaginatedList.Pagination className="mt-2" />
     </PaginatedList>

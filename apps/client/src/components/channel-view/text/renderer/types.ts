@@ -4,6 +4,7 @@ export type TFoundMedia = {
   key: string;
   type: 'image' | 'video' | 'audio';
   url: string;
+  fileId?: number;
 };
 
 export type TFoundOpenGraph = {

@@ -1,4 +1,4 @@
-import { openThreadSidebar } from '@/features/app/actions';
+import { openThread } from '@/features/app/actions';
 import {
   browserNotificationsForDmsSelector,
   browserNotificationsForMentionsSelector,
@@ -104,7 +104,7 @@ const sendBrowserNotification = (
 
     // a thread reply lives in its thread, which jumpToMessage does not open
     if (parentMessageId) {
-      openThreadSidebar(parentMessageId, channelId);
+      openThread(parentMessageId, channelId);
     }
 
     notification.close();

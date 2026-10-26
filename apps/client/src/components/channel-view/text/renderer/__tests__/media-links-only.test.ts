@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isMediaLinksOnly } from '../helpers';
+import { getShownMedia, isMediaLinksOnly } from '../helpers';
 import type { TFoundMedia } from '../types';
 
 const GIF_URL = 'https://static.klipy.com/ii/abc/DNk3YHhb.gif';
@@ -37,6 +37,12 @@ describe('isMediaLinksOnly', () => {
 
   test('should keep a link while its media has not loaded yet', () => {
     expect(isMediaLinksOnly(`<p>${link(GIF_URL)}</p>`, [])).toBe(false);
+  });
+
+  test('should bring the link back once its media fails to load', () => {
+    const shown = getShownMedia([gif], new Set([GIF_URL]));
+
+    expect(isMediaLinksOnly(`<p>${link(GIF_URL)}</p>`, shown)).toBe(false);
   });
 
   test('should keep a message with a custom emoji next to the link', () => {

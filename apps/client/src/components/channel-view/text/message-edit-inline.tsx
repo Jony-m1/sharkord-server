@@ -5,7 +5,6 @@ import {
   isEmptyMessage,
   prepareMessageHtml
 } from '@sharkord/shared';
-import { AutoFocus } from '@sharkord/ui';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -52,14 +51,13 @@ const MessageEditInline = memo(
 
     return (
       <div className="flex flex-col gap-2">
-        <AutoFocus>
-          <TiptapInput
-            value={value}
-            onChange={setValue}
-            onSubmit={handleSubmit}
-            onCancel={onBlur}
-          />
-        </AutoFocus>
+        <TiptapInput
+          value={value}
+          onChange={setValue}
+          onSubmit={handleSubmit}
+          onCancel={onBlur}
+          autoFocus="end"
+        />
         <span className="text-xs text-primary/60">{t('pressEnterToSave')}</span>
       </div>
     );

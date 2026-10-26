@@ -4,6 +4,8 @@ import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TableInvite } from './table-invite';
 
+const getInviteKey = (invite: TJoinedInvite) => invite.id;
+
 type TInvitesTableProps = {
   invites: TJoinedInvite[];
   refetch: () => void;
@@ -23,12 +25,18 @@ const InvitesTable = memo(({ invites, refetch }: TInvitesTableProps) => {
     []
   );
 
+  const renderRow = useCallback(
+    (invite: TJoinedInvite) => (
+      <TableInvite invite={invite} refetch={refetch} />
+    ),
+    [refetch]
+  );
+
   return (
     <PaginatedTable
       items={invites}
-      renderRow={(invite) => (
-        <TableInvite key={invite.id} invite={invite} refetch={refetch} />
-      )}
+      renderRow={renderRow}
+      getItemKey={getInviteKey}
       searchFilter={searchFilter}
       headerColumns={
         <>

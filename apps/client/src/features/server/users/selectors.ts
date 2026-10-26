@@ -89,6 +89,40 @@ export const isUserAfkSelector = createCachedSelector(
   (status) => status === UserStatus.IDLE
 )((_, userId: number | null) => userId);
 
+// a banned member cannot be connected, whatever status was last seen for them
+export const onlineUserIdsSelector = createSelector(
+  [usersSelector],
+  (users) => {
+    const ids = new Set<number>();
+
+    users.forEach((user) => {
+      const status = user.status ?? UserStatus.OFFLINE;
+
+      if (!user.banned && status !== UserStatus.OFFLINE) ids.add(user.id);
+    });
+
+    return ids;
+  }
+);
+
+export const bannedUserIdsSelector = createSelector(
+  [usersSelector],
+  (users) => {
+    const ids = new Set<number>();
+
+    users.forEach((user) => {
+      if (user.banned) ids.add(user.id);
+    });
+
+    return ids;
+  }
+);
+
+export const isUserBannedSelector = createCachedSelector(
+  [userByIdSelector, (_: IRootState, userId: number) => userId],
+  (user) => Boolean(user?.banned)
+)((_, userId: number) => userId);
+
 // users are stored as an array, so every by-id lookup was a find. The typing
 // and voice selectors did that inside a map, which is O(users x participants)
 export const usersMapSelector = createSelector([usersSelector], (users) => {

@@ -46,7 +46,7 @@
     "MANAGE_EMOJIS": "Grants the ability to create, update, and delete emojis.",
     "MANAGE_SETTINGS": "Grants the ability to manage server settings.",
     "MANAGE_USERS": "Grants the ability to manage users.",
-    "MOVE_MEMBERS": "Grants the ability to move members between voice channels.",
+    "MOVE_MEMBERS": "Grants the ability to move members between voice channels, disconnect them from voice and server mute them.",
     "MANAGE_MESSAGES": "Grants the ability to manage messages from all users by editing or deleting them.",
     "MANAGE_STORAGE": "Grants the ability to manage storage, such as enabling or disabling uploads.",
     "MANAGE_INVITES": "Grants the ability to create, edit, and delete server invites.",

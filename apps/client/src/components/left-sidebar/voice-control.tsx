@@ -1,9 +1,14 @@
 import { useCurrentVoiceChannelId } from '@/features/server/channels/hooks';
-import { useChannelCan } from '@/features/server/hooks';
+import { useCan, useChannelCan } from '@/features/server/hooks';
 import { leaveVoice } from '@/features/server/voice/actions';
 import { useVoice } from '@/features/server/voice/hooks';
 import { cn } from '@/lib/utils';
-import { ChannelPermission, PluginSlot } from '@sharkord/shared';
+import {
+  ChannelPermission,
+  Permission,
+  PluginSlot,
+  TestId
+} from '@sharkord/shared';
 import { Button } from '@sharkord/ui';
 import {
   AlertTriangle,
@@ -13,10 +18,9 @@ import {
   PhoneOff,
   Video,
   VideoOff,
-  Wifi,
-  WifiOff
+  Wifi
 } from 'lucide-react';
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ExternalAudioStreams } from '../channel-view/voice/external-audio-streams';
 import { VoiceAudioStreams } from '../channel-view/voice/voice-audio-streams';
@@ -27,6 +31,7 @@ import { StatsPopover } from './stats-popover';
 const VoiceControl = memo(() => {
   const { t } = useTranslation('sidebar');
   const voiceChannelId = useCurrentVoiceChannelId();
+  const can = useCan();
   const channelCan = useChannelCan(voiceChannelId);
   const {
     ownVoiceState,
@@ -36,14 +41,10 @@ const VoiceControl = memo(() => {
     isScreenShareSupported
   } = useVoice();
 
+  // this panel only shows while a call is set, and the status leaves disconnected only once the
+  // join has answered, so disconnected here is a join still on its way rather than a lost call
   const connectionInfo = useMemo(() => {
     switch (connectionStatus) {
-      case 'connecting':
-        return {
-          icon: <Loader2 className="h-4 w-4 animate-spin" />,
-          text: t('voiceConnecting'),
-          color: 'text-yellow-500'
-        };
       case 'connected':
         return {
           icon: <Wifi className="h-4 w-4 text-green-600" />,
@@ -56,20 +57,30 @@ const VoiceControl = memo(() => {
           text: t('voiceFailed'),
           color: 'text-red-500'
         };
+      case 'connecting':
       case 'disconnected':
       default:
         return {
-          icon: <WifiOff className="h-4 w-4 text-red-500" />,
-          text: t('voiceDisconnected'),
-          color: 'text-red-500'
+          icon: <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />,
+          text: t('voiceConnecting'),
+          color: 'text-yellow-500'
         };
     }
   }, [connectionStatus, t]);
+
+  const handleLeaveVoice = useCallback(() => {
+    leaveVoice({ reason: 'user_disconnect_button' });
+  }, []);
 
   const pluginSlotProps = useMemo(
     () => (voiceChannelId ? { channelId: voiceChannelId } : undefined),
     [voiceChannelId]
   );
+
+  // a public channel allows sharing to everyone, so without the server permission as well
+  // the button would offer a share the server always refuses
+  const canShareScreen =
+    can(Permission.SHARE_SCREEN) && channelCan(ChannelPermission.SHARE_SCREEN);
 
   if (!voiceChannelId) {
     return null;
@@ -79,7 +90,10 @@ const VoiceControl = memo(() => {
     <>
       <VoiceAudioStreams channelId={voiceChannelId} />
       <ExternalAudioStreams channelId={voiceChannelId} />
-      <div className="bg-secondary/30 border-t border-border">
+      <div
+        data-testid={TestId.VOICE_CONTROL}
+        className="bg-secondary/30 border-t border-border"
+      >
         <StatsPopover>
           <div className="flex items-center px-2 py-1.5 gap-2 bg-secondary/50 cursor-pointer hover:bg-secondary/60 transition-colors">
             {connectionInfo.icon}
@@ -91,11 +105,7 @@ const VoiceControl = memo(() => {
         </StatsPopover>
 
         <div className="flex items-center justify-between px-2 py-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => leaveVoice({ reason: 'user_disconnect_button' })}
-          >
+          <Button variant="outline" size="sm" onClick={handleLeaveVoice}>
             <PhoneOff className="h-3.5 w-3.5 mr-1.5" />
             {t('disconnectVoice')}
           </Button>
@@ -145,7 +155,7 @@ const VoiceControl = memo(() => {
                     ? t('stopScreenShare')
                     : t('startScreenShare')
                 }
-                disabled={!channelCan(ChannelPermission.SHARE_SCREEN)}
+                disabled={!canShareScreen}
               >
                 {ownVoiceState.sharingScreen ? (
                   <Monitor className="h-4 w-4" />

@@ -15,6 +15,9 @@ export const pinnedCardSelector = (state: IRootState) =>
 export const voiceMoveTargetChannelIdSelector = (state: IRootState) =>
   state.server.voiceMoveTargetChannelId;
 
+export const joiningVoiceChannelIdSelector = (state: IRootState) =>
+  state.server.joiningVoiceChannelId;
+
 export const voiceChannelStateSelector = (
   state: IRootState,
   channelId: number
@@ -22,6 +25,28 @@ export const voiceChannelStateSelector = (
 
 export const callStartedAtSelector = (state: IRootState, channelId: number) =>
   state.server.voiceMap[channelId]?.startedAt;
+
+const voiceMapSelector = (state: IRootState) => state.server.voiceMap;
+
+// the call someone is in. the server tells every client about every call, private channels
+// included, so this is not limited to what the client can see: anything shown from it has to
+// check visibility, as visibleServerVoiceChannelIdByUserIdSelector does
+export const voiceChannelIdByUserIdSelector = createCachedSelector(
+  [voiceMapSelector, (_: IRootState, userId: number) => userId],
+  (voiceMap, userId) => {
+    for (const [channelId, channel] of Object.entries(voiceMap)) {
+      if (channel.users[userId]) return Number(channelId);
+    }
+
+    return undefined;
+  }
+)((_, userId: number) => userId);
+
+export const voiceUserStateSelector = (
+  state: IRootState,
+  channelId: number,
+  userId: number
+) => state.server.voiceMap[channelId]?.users[userId];
 
 export const callJoinedAtSelector = (
   state: IRootState,

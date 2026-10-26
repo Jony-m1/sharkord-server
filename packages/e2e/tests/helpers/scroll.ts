@@ -42,18 +42,21 @@ const wheelUp = (page: Page) => page.mouse.wheel(0, -WHEEL_STEP);
 // the channel scrolls itself to the bottom on open and keeps re-applying that while late
 // content settles. waiting for the position to stop moving means a test never starts
 // measuring against a viewport that is still being adjusted
-const waitForStableScroll = async (container: Locator) => {
+const waitForStableScroll = async (container: Locator, timeout?: number) => {
   let previous = -1;
 
   await expect
-    .poll(async () => {
-      const { scrollTop } = await readScroll(container);
-      const settled = scrollTop === previous;
+    .poll(
+      async () => {
+        const { scrollTop } = await readScroll(container);
+        const settled = scrollTop === previous;
 
-      previous = scrollTop;
+        previous = scrollTop;
 
-      return settled;
-    })
+        return settled;
+      },
+      { timeout }
+    )
     .toBe(true);
 };
 

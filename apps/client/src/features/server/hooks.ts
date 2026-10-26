@@ -18,8 +18,10 @@ import {
   hasVisibleChannelsInCategorySelector,
   hiddenPluginComponentsSelector,
   infoSelector,
+  isJoiningVoiceChannelSelector,
   isMobileContentOpenSelector,
   isOwnUserOwnerSelector,
+  isThreadOverConversationSelector,
   ownUserRolesSelector,
   ownVoiceUserSelector,
   pluginsEnabledSelector,
@@ -33,6 +35,8 @@ import {
   typingUsersByConversationKeySelector,
   userRolesSelector,
   userSettingsPluginsSelector,
+  visibleServerVoiceChannelIdByUserIdSelector,
+  voiceMoveTargetsByUserIdSelector,
   voiceUsersByChannelIdSelector,
   webRtcSimulcastEnabledSelector
 } from './selectors';
@@ -145,6 +149,21 @@ export const useVoiceUsersByChannelId = (channelId: number) =>
 
 export const useOwnVoiceUser = () => useSelector(ownVoiceUserSelector);
 
+export const useIsJoiningVoiceChannel = (channelId: number) =>
+  useSelector((state: IRootState) =>
+    isJoiningVoiceChannelSelector(state, channelId)
+  );
+
+export const useVisibleServerVoiceChannelIdByUserId = (userId: number) =>
+  useSelector((state: IRootState) =>
+    visibleServerVoiceChannelIdByUserIdSelector(state, userId)
+  );
+
+export const useVoiceMoveTargetsByUserId = (userId: number) =>
+  useSelector((state: IRootState) =>
+    voiceMoveTargetsByUserIdSelector(state, userId)
+  );
+
 export const useUnreadMessagesCount = (channelId: number) =>
   useSelector((state: IRootState) =>
     channelReadStateByIdSelector(state, channelId)
@@ -187,6 +206,9 @@ export const useDmsOpen = () => useSelector(dmsOpenSelector);
 
 export const useIsMobileContentOpen = () =>
   useSelector(isMobileContentOpenSelector);
+
+export const useIsThreadOverConversation = () =>
+  useSelector(isThreadOverConversationSelector);
 
 export const useUserSettingsPlugins = () =>
   useSelector(userSettingsPluginsSelector);

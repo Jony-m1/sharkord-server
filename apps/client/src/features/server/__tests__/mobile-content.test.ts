@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { isMobileContentOpenSelector } from '../selectors';
 
 type TView = {
+  mobileContentClosing?: boolean;
   activeFullscreenPluginId?: string;
   threadsOpen?: boolean;
   selectedThread?: { parentMessageId: number; channelId: number };
@@ -12,6 +13,7 @@ type TView = {
 };
 
 const stateWith = ({
+  mobileContentClosing = false,
   activeFullscreenPluginId,
   threadsOpen = false,
   selectedThread,
@@ -21,6 +23,7 @@ const stateWith = ({
 }: TView) =>
   ({
     server: {
+      mobileContentClosing,
       activeFullscreenPluginId,
       threadsOpen,
       dmsOpen,
@@ -29,8 +32,7 @@ const stateWith = ({
     app: { selectedThread, selectedDmChannelId }
   }) as unknown as IRootState;
 
-// closeMobileContent, which this selector answers to, is covered end to end in
-// packages/e2e (mobile-navigation.spec.ts): importing actions here needs a browser window
+// closeMobileContent, which this selector answers to, is covered in server-navigation.test.ts
 describe('isMobileContentOpenSelector', () => {
   test('should show the list while nothing is open', () => {
     expect(isMobileContentOpenSelector(stateWith({}))).toBe(false);
@@ -75,5 +77,25 @@ describe('isMobileContentOpenSelector', () => {
     const state = stateWith({ activeFullscreenPluginId: 'board' });
 
     expect(isMobileContentOpenSelector(state)).toBe(true);
+  });
+
+  // back slides the list over the conversation first and closes it once it is covered, so
+  // the list is what shows while the conversation is still open under it
+  test('should show the list while back slides it over the conversation', () => {
+    const state = stateWith({
+      mobileContentClosing: true,
+      selectedChannelId: 3
+    });
+
+    expect(isMobileContentOpenSelector(state)).toBe(false);
+  });
+
+  test('should show the list while back slides it over a full screen plugin', () => {
+    const state = stateWith({
+      mobileContentClosing: true,
+      activeFullscreenPluginId: 'board'
+    });
+
+    expect(isMobileContentOpenSelector(state)).toBe(false);
   });
 });

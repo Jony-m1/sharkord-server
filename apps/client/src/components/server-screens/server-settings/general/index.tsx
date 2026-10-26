@@ -133,112 +133,125 @@ const General = memo(() => {
     return <LoadingCard className="h-[600px]" />;
   }
 
+  // one form behind three cards, so the save bar still covers all of it
   return (
-    <SettingsSection
-      title={t('serverInfoTitle')}
-      description={t('serverInfoDesc')}
-    >
-      <Group label={t('nameLabel')}>
-        <Input placeholder={t('namePlaceholder')} {...r('name')} />
-      </Group>
-
-      <Group label={t('descriptionLabel')}>
-        <Textarea
-          rows={4}
-          placeholder={t('descriptionPlaceholder')}
-          {...r('description')}
-        />
-      </Group>
-
-      <Group label={t('serverPasswordLabel')}>
-        <Input
-          placeholder={t('serverPasswordPlaceholder')}
-          {...r('password', 'password')}
-        />
-      </Group>
-
-      <Group
-        label={t('onlyAskForPasswordOnFirstJoinLabel')}
-        description={t('onlyAskForPasswordOnFirstJoinDesc')}
+    <>
+      <SettingsSection
+        title={t('serverInfoTitle')}
+        description={t('serverInfoDesc')}
       >
-        <Switch
-          checked={values.onlyAskForPasswordOnFirstJoin}
-          onCheckedChange={handlePasswordOnFirstJoinChange}
+        <Group label={t('nameLabel')}>
+          <Input placeholder={t('namePlaceholder')} {...r('name')} />
+        </Group>
+
+        <Group label={t('descriptionLabel')}>
+          <Textarea
+            rows={4}
+            placeholder={t('descriptionPlaceholder')}
+            {...r('description')}
+          />
+        </Group>
+
+        <ImagePicker
+          label={t('logoLabel')}
+          description={t('logoDesc')}
+          className="h-24 w-80 max-w-full object-scale-down"
+          currentUrl={getFileUrl(settings?.logo)}
+          draft={values.logo}
+          onChange={handleLogoChange}
         />
-      </Group>
 
-      <ImagePicker
-        label={t('logoLabel')}
-        description={t('logoDesc')}
-        className="h-24 w-80 object-scale-down"
-        currentUrl={getFileUrl(settings?.logo)}
-        draft={values.logo}
-        onChange={handleLogoChange}
-      />
+        <ImagePicker
+          label={t('serverBannerLabel')}
+          description={t('serverBannerDesc')}
+          className="h-36 w-80 max-w-full object-cover"
+          currentUrl={getFileUrl(settings?.banner)}
+          draft={values.banner}
+          onChange={handleBannerChange}
+        />
+      </SettingsSection>
 
-      <ImagePicker
-        label={t('serverBannerLabel')}
-        description={t('serverBannerDesc')}
-        className="h-36 w-80 object-cover"
-        currentUrl={getFileUrl(settings?.banner)}
-        draft={values.banner}
-        onChange={handleBannerChange}
-      />
-
-      <Group
-        label={t('allowNewUsersLabel')}
-        description={t('allowNewUsersDesc')}
+      <SettingsSection
+        title={t('accessSectionTitle')}
+        description={t('accessSectionDesc')}
       >
-        <Switch
-          checked={values.allowNewUsers}
-          onCheckedChange={handleAllowNewUsersChange}
-        />
-      </Group>
+        <Group label={t('serverPasswordLabel')}>
+          <Input
+            placeholder={t('serverPasswordPlaceholder')}
+            {...r('password', 'password')}
+          />
+        </Group>
 
-      <Group label={t('pluginsLabel')} description={t('pluginsDesc')}>
-        <Switch
-          checked={values.enablePlugins}
-          onCheckedChange={handleEnablePluginsChange}
-        />
-      </Group>
+        <Group
+          label={t('onlyAskForPasswordOnFirstJoinLabel')}
+          description={t('onlyAskForPasswordOnFirstJoinDesc')}
+        >
+          <Switch
+            checked={values.onlyAskForPasswordOnFirstJoin}
+            onCheckedChange={handlePasswordOnFirstJoinChange}
+          />
+        </Group>
 
-      <Group label={t('simulcastLabel')} description={t('simulcastDesc')}>
-        <Switch
-          checked={values.webRtcSimulcastEnabled}
-          onCheckedChange={handleSimulcastChange}
-        />
-      </Group>
+        <Group
+          label={t('allowNewUsersLabel')}
+          description={t('allowNewUsersDesc')}
+        >
+          <Switch
+            checked={values.allowNewUsers}
+            onCheckedChange={handleAllowNewUsersChange}
+          />
+        </Group>
+      </SettingsSection>
 
-      <Group
-        label={t('directMessagesEnabledLabel')}
-        description={t('directMessagesEnabledDesc')}
+      <SettingsSection
+        title={t('featuresSectionTitle')}
+        description={t('featuresSectionDesc')}
       >
-        <Switch
-          checked={values.directMessagesEnabled}
-          onCheckedChange={handleDirectMessagesChange}
-        />
-      </Group>
+        <Group
+          label={t('directMessagesEnabledLabel')}
+          description={t('directMessagesEnabledDesc')}
+        >
+          <Switch
+            checked={values.directMessagesEnabled}
+            onCheckedChange={handleDirectMessagesChange}
+          />
+        </Group>
 
-      <Group
-        label={t('searchEnabledLabel')}
-        description={t('searchEnabledDesc')}
-      >
-        <Switch
-          checked={values.enableSearch}
-          onCheckedChange={handleSearchChange}
-        />
-      </Group>
+        <Group
+          label={t('searchEnabledLabel')}
+          description={t('searchEnabledDesc')}
+        >
+          <Switch
+            checked={values.enableSearch}
+            onCheckedChange={handleSearchChange}
+          />
+        </Group>
 
-      <Group
-        label={t('showWelcomeDialogLabel')}
-        description={t('showWelcomeDialogDesc')}
-      >
-        <Switch
-          checked={values.showWelcomeDialog}
-          onCheckedChange={handleWelcomeDialogChange}
-        />
-      </Group>
-    </SettingsSection>
+        <Group label={t('pluginsLabel')} description={t('pluginsDesc')}>
+          <Switch
+            checked={values.enablePlugins}
+            onCheckedChange={handleEnablePluginsChange}
+          />
+        </Group>
+
+        <Group label={t('simulcastLabel')} description={t('simulcastDesc')}>
+          <Switch
+            checked={values.webRtcSimulcastEnabled}
+            onCheckedChange={handleSimulcastChange}
+          />
+        </Group>
+
+        <Group
+          label={t('showWelcomeDialogLabel')}
+          description={t('showWelcomeDialogDesc')}
+        >
+          <Switch
+            checked={values.showWelcomeDialog}
+            onCheckedChange={handleWelcomeDialogChange}
+          />
+        </Group>
+      </SettingsSection>
+    </>
   );
 });
 

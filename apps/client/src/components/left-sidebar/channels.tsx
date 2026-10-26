@@ -190,7 +190,7 @@ const Text = memo(({ channel, ...props }: TTextProps) => {
   return (
     <ItemWrapper {...props}>
       <Hash className="h-4 w-4" />
-      <span className={cn('flex-1', { 'opacity-50': isMuted })}>
+      <span className={cn('flex-1 truncate', { 'opacity-50': isMuted })}>
         {channel.name}
       </span>
       {hasTypingUsers && (

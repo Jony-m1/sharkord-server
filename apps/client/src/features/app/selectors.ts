@@ -42,6 +42,9 @@ export const selectedDmChannelIdSelector = (state: IRootState) =>
 export const selectedThreadSelector = (state: IRootState) =>
   state.app.selectedThread;
 
+export const selectedThreadFromConversationSelector = (state: IRootState) =>
+  state.app.selectedThreadFromConversation;
+
 export const browserNotificationsSelector = (state: IRootState) =>
   state.app.browserNotifications;
 
@@ -59,6 +62,9 @@ export const messageJumpTargetSelector = (state: IRootState) =>
 
 export const voiceChatSidebarOpenSelector = (state: IRootState) =>
   state.app.voiceChatSidebarOpen;
+
+export const membersDrawerOpenSelector = (state: IRootState) =>
+  state.app.membersDrawerOpen;
 
 export const pluginSlotDebugSelector = (state: IRootState) =>
   state.app.pluginSlotDebug;

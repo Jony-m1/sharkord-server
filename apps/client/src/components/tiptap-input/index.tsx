@@ -3,6 +3,7 @@ import { useReferenceableChannels } from '@/features/server/hooks';
 import { useRoles } from '@/features/server/roles/hooks';
 import { useFilteredUsers } from '@/features/server/users/hooks';
 import { TestId, type TCommandInfo } from '@sharkord/shared';
+import type { FocusPosition } from '@tiptap/core';
 import Emoji, { gitHubEmojis } from '@tiptap/extension-emoji';
 import Link from '@tiptap/extension-link';
 import { EditorContent, useEditor } from '@tiptap/react';
@@ -55,6 +56,7 @@ type TTiptapInputProps = {
   onArrowUp?: () => void;
   onTyping?: () => void;
   commands?: TCommandInfo[];
+  autoFocus?: FocusPosition;
   ref?: Ref<TTiptapInputHandle>;
 };
 
@@ -70,6 +72,7 @@ const TiptapInput = memo(
     disabled,
     readOnly,
     commands,
+    autoFocus = false,
     ref
   }: TTiptapInputProps) => {
     const readOnlyRef = useRef(readOnly);
@@ -154,6 +157,7 @@ const TiptapInput = memo(
       extensions,
       content: value,
       editable: !disabled,
+      autofocus: autoFocus,
       onUpdate: ({ editor }) => {
         const html = editor.getHTML();
 
@@ -174,7 +178,10 @@ const TiptapInput = memo(
             return true;
           }
 
-          const suggestionElement = document.querySelector('.bg-popover');
+          // an emoji picker held open with shift is a popover too, but enter still sends past it
+          const suggestionElement = document.querySelector(
+            '.bg-popover:not([data-emoji-picker])'
+          );
           const hasSuggestions =
             suggestionElement && document.body.contains(suggestionElement);
 

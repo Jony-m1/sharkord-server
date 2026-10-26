@@ -1,4 +1,4 @@
-import { ChannelPermission, ServerEvents } from '@sharkord/shared';
+import { ChannelPermission, Permission, ServerEvents } from '@sharkord/shared';
 import { z } from 'zod';
 import { getCurrentVoiceRuntime } from '../../helpers/get-current-voice-runtime';
 import { VoiceRuntime } from '../../runtimes/voice';
@@ -19,7 +19,13 @@ const updateVoiceStateRoute = protectedProcedure
 
     const validatedInput = { ...input };
 
-    const [canSpeak, canUseWebcam, canShareScreen] = await Promise.all([
+    // produce refuses a screen without the server permission too, and a share it refuses
+    // must never reach the rest of the call as live
+    const canShareScreenAnywhere = await ctx.hasPermission(
+      Permission.SHARE_SCREEN
+    );
+
+    const [canSpeak, canUseWebcam, canShareScreenHere] = await Promise.all([
       ctx.hasChannelPermission(channelId, ChannelPermission.SPEAK),
       ctx.hasChannelPermission(channelId, ChannelPermission.WEBCAM),
       ctx.hasChannelPermission(channelId, ChannelPermission.SHARE_SCREEN)
@@ -33,7 +39,7 @@ const updateVoiceStateRoute = protectedProcedure
       delete validatedInput.webcamEnabled;
     }
 
-    if (!canShareScreen) {
+    if (!canShareScreenAnywhere || !canShareScreenHere) {
       delete validatedInput.sharingScreen;
     }
 

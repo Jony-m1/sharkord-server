@@ -17,14 +17,13 @@ import {
   Eye,
   EyeClosed,
   Gavel,
-  Globe,
   IdCard,
-  KeyRound,
-  Network
+  KeyRound
 } from 'lucide-react';
-import { memo, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useModViewContext } from '../context';
+import { LoginHistory } from './login-history';
 
 type TRowProps = {
   icon: React.ReactNode;
@@ -37,6 +36,10 @@ type TRowProps = {
 const Row = memo(
   ({ icon, label, value, details, hidden = false }: TRowProps) => {
     const [visible, setVisible] = useState(!hidden);
+
+    const toggleVisible = useCallback(() => {
+      setVisible((current) => !current);
+    }, []);
 
     let valContent = (
       <span className="text-sm text-muted-foreground truncate max-w-[160px]">
@@ -58,7 +61,7 @@ const Row = memo(
         {hidden && (
           <IconButton
             role="button"
-            onClick={() => setVisible(!visible)}
+            onClick={toggleVisible}
             className="text-muted-foreground inline-flex h-6 w-6 items-center justify-center rounded bg-transparent hover:bg-accent hover:text-foreground cursor-pointer transition-colors focus:outline-none"
             icon={visible ? EyeClosed : Eye}
           />
@@ -72,7 +75,6 @@ const Details = memo(() => {
   const { t } = useTranslation('settings');
   const dateLocale = useDateLocale();
   const { user, logins } = useModViewContext();
-  const lastLogin = logins[0]; // TODO: in the future we might show a list of logins, atm we just show info about the last one
 
   return (
     <Card>
@@ -95,20 +97,6 @@ const Details = memo(() => {
               icon={<IdCard className="h-4 w-4 text-muted-foreground" />}
               label={t('identityDetailLabel')}
               value={user.identity ?? ''}
-              hidden
-            />
-
-            <Row
-              icon={<Network className="h-4 w-4 text-muted-foreground" />}
-              label={t('ipAddressLabel')}
-              value={lastLogin?.ip || t('unknownValue')}
-              hidden
-            />
-
-            <Row
-              icon={<Globe className="h-4 w-4 text-muted-foreground" />}
-              label={t('locationLabel')}
-              value={`${lastLogin?.country || t('naValue')} - ${lastLogin?.city || t('naValue')}`}
               hidden
             />
           </Protect>
@@ -168,6 +156,10 @@ const Details = memo(() => {
             </>
           )}
         </div>
+
+        <Protect permission={Permission.VIEW_USER_SENSITIVE_DATA}>
+          <LoginHistory logins={logins} />
+        </Protect>
       </CardContent>
     </Card>
   );

@@ -6,11 +6,14 @@ import { useModViewContext } from '../context';
 
 type TLinkCardProps = {
   url: string;
-  onOpen: () => void;
 };
 
-const LinkCard = memo(({ url, onOpen }: TLinkCardProps) => {
+const LinkCard = memo(({ url }: TLinkCardProps) => {
   const { t } = useTranslation('settings');
+
+  const handleOpen = useCallback(() => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, [url]);
 
   const truncatedUrl = useMemo(() => {
     const maxLength = 50;
@@ -45,7 +48,7 @@ const LinkCard = memo(({ url, onOpen }: TLinkCardProps) => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={onOpen}
+          onClick={handleOpen}
           className="flex-shrink-0 ml-2"
         >
           <ExternalLink className="h-4 w-4" />
@@ -58,13 +61,11 @@ const LinkCard = memo(({ url, onOpen }: TLinkCardProps) => {
 const searchFilter = (url: string, term: string) =>
   url.toLowerCase().includes(term.toLowerCase());
 
+const renderLink = (url: string) => <LinkCard url={url} />;
+
 const Links = memo(() => {
   const { t } = useTranslation('settings');
   const { links } = useModViewContext();
-
-  const onOpenClick = useCallback((url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }, []);
 
   return (
     <PaginatedList items={links} itemsPerPage={8} searchFilter={searchFilter}>
@@ -76,7 +77,7 @@ const Links = memo(() => {
         {t('noLinksFound')}
       </PaginatedList.Empty>
       <PaginatedList.List<string> className="flex flex-col gap-2">
-        {(url) => <LinkCard url={url} onOpen={() => onOpenClick(url)} />}
+        {renderLink}
       </PaginatedList.List>
       <PaginatedList.Pagination className="mt-2" />
     </PaginatedList>

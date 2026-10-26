@@ -1,6 +1,8 @@
 {
   "closeVoiceChat": "Close Voice Chat",
   "openVoiceChat": "Open Voice Chat",
+  "backToCall": "Back to the call",
+  "resizeVoiceChat": "Drag to resize the chat",
   "closeMembersSidebar": "Close Members Sidebar",
   "openMembersSidebar": "Open Members Sidebar",
   "searchContent": "Search for content...",

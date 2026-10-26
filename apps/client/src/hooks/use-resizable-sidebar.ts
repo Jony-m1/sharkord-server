@@ -1,3 +1,4 @@
+import { clamp } from '@/helpers/clamp';
 import {
   getLocalStorageItem,
   type LocalStorageKey,
@@ -5,74 +6,117 @@ import {
 } from '@/helpers/storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+// the side of the panel its drag handle sits on: left and right resize the width, top the height
+type TResizeEdge = 'left' | 'right' | 'top';
+
 type TResizableSidebarOptions = {
   storageKey: LocalStorageKey;
-  minWidth: number;
-  maxWidth: number;
-  defaultWidth: number;
-  edge: 'left' | 'right';
+  minSize: number;
+  maxSize: number;
+  defaultSize: number;
+  edge: TResizeEdge;
+};
+
+// the size that puts the handle under the pointer, measured from the panel's fixed side
+const getDraggedSize = (
+  edge: TResizeEdge,
+  rect: Pick<DOMRect, 'left' | 'right' | 'bottom'>,
+  pointer: Pick<PointerEvent, 'clientX' | 'clientY'>
+) => {
+  if (edge === 'top') {
+    return rect.bottom - pointer.clientY;
+  }
+
+  if (edge === 'left') {
+    return rect.right - pointer.clientX;
+  }
+
+  return pointer.clientX - rect.left;
+};
+
+// a size saved under older limits, or garbage, still has to land inside the current ones
+const getSavedSize = (
+  saved: string | null,
+  minSize: number,
+  maxSize: number,
+  defaultSize: number
+) => {
+  const savedSize = Number(saved);
+
+  if (!savedSize) {
+    return defaultSize;
+  }
+
+  return clamp(savedSize, minSize, maxSize);
 };
 
 const useResizableSidebar = ({
   storageKey,
-  minWidth,
-  maxWidth,
-  defaultWidth,
+  minSize,
+  maxSize,
+  defaultSize,
   edge
 }: TResizableSidebarOptions) => {
-  const [width, setWidth] = useState(() => {
+  const [size, setSize] = useState(() => {
     const saved = getLocalStorageItem(storageKey);
 
-    return saved ? parseInt(saved, 10) : defaultWidth;
+    return getSavedSize(saved, minSize, maxSize, defaultSize);
   });
 
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
+  // pointer events so a finger can drag it too, and the capture keeps the drag going over
+  // embedded players, which would otherwise swallow the moves. a handle opts out of the swipe
+  // navigation with data-no-swipe, see use-swipe-gestures
+  const handlePointerDown = useCallback((event: React.PointerEvent) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
     setIsResizing(true);
   }, []);
 
   useEffect(() => {
     if (!isResizing) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!sidebarRef.current) return;
+    let draggedSize: number | undefined;
 
-      const rect = sidebarRef.current.getBoundingClientRect();
+    const handlePointerMove = (event: PointerEvent) => {
+      const sidebar = sidebarRef.current;
 
-      const newWidth =
-        edge === 'left'
-          ? rect.right - e.clientX // right-side panel: drag left edge
-          : e.clientX - rect.left; // left-side panel: drag right edge
+      if (!sidebar) return;
 
-      if (newWidth >= minWidth && newWidth <= maxWidth) {
-        setWidth(newWidth);
+      const rect = sidebar.getBoundingClientRect();
 
-        setLocalStorageItem(storageKey, newWidth.toString());
-      }
+      draggedSize = clamp(getDraggedSize(edge, rect, event), minSize, maxSize);
+      setSize(draggedSize);
     };
 
-    const handleMouseUp = () => {
+    // saved once when the drag ends, not with a synchronous storage write on every move
+    const handlePointerUp = () => {
       setIsResizing(false);
+
+      if (draggedSize === undefined) return;
+
+      setLocalStorageItem(storageKey, Math.round(draggedSize).toString());
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('pointercancel', handlePointerUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', handlePointerUp);
     };
-  }, [isResizing, edge, minWidth, maxWidth, storageKey]);
+  }, [isResizing, edge, minSize, maxSize, storageKey]);
 
   return {
-    width,
+    size,
     isResizing,
     sidebarRef,
-    handleMouseDown
+    handlePointerDown
   };
 };
 
-export { useResizableSidebar };
+export { getDraggedSize, getSavedSize, useResizableSidebar };

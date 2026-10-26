@@ -53,9 +53,8 @@ test('a call’s chat follows you to the next call and keeps its buttons in the 
 
   const chat = page.getByTestId(TestId.VOICE_CHAT);
 
-  if (!(await chat.getByTestId(TestId.MESSAGE_COMPOSE_EDITOR).isVisible())) {
-    await page.getByTestId(TestId.VOICE_CHAT_TOGGLE).click();
-  }
+  // the chat starts open under the call on a wide screen, so there is nothing to toggle
+  await expect(chat.getByTestId(TestId.MESSAGE_COMPOSE_EDITOR)).toBeVisible();
 
   await sendMessage(chat, content);
 

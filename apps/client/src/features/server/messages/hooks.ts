@@ -141,13 +141,22 @@ const usePaginatedMessages = (
   messages: TJoinedMessage[],
   fetchPage: TFetchPage
 ) => {
-  const [fetching, setFetching] = useState(false);
+  const { t } = useTranslation('common');
+  // page 1 is fetched again on every open to catch up with what the cache missed, which is
+  // done out of sight. only loading older history is worth telling the user about
+  const [refreshing, setRefreshing] = useState(false);
+  const [fetchingOlder, setFetchingOlder] = useState(false);
   const [loading, setLoading] = useState(messages.length === 0);
   const [cursor, setCursor] = useState<TMessagesCursor | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  // kept apart from hasMore: the history is still there, it just has to be asked for again,
+  // and the list keeps a retry for that for as long as it is open
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const fetchMessages = useCallback(
     async (cursorToFetch: TMessagesCursor | null) => {
+      const setFetching = cursorToFetch ? setFetchingOlder : setRefreshing;
+
       setFetching(true);
 
       try {
@@ -155,23 +164,41 @@ const usePaginatedMessages = (
 
         setCursor(nextCursor);
         setHasMore(nextCursor !== null);
+        setLoadFailed(false);
+      } catch (error) {
+        setLoadFailed(true);
+
+        toast.error(getTrpcError(error, t('failedLoadMessages')));
       } finally {
         setFetching(false);
         setLoading(false);
       }
     },
-    [fetchPage]
+    [fetchPage, t]
   );
 
+  // older pages only: without a cursor there is nothing older to ask for yet, and asking
+  // anyway would fetch page 1 a second time. after a failure the scroll handler would ask
+  // again every time a fetch settles, so only retryLoad asks again then
   const loadMore = useCallback(async () => {
-    if (fetching || !hasMore) return;
+    if (refreshing || fetchingOlder || loadFailed || !hasMore || !cursor)
+      return;
 
     await fetchMessages(cursor);
-  }, [fetching, hasMore, cursor, fetchMessages]);
+  }, [refreshing, fetchingOlder, loadFailed, hasMore, cursor, fetchMessages]);
 
+  // the cursor only moves when a page arrives, so it still points at the page that failed,
+  // and with no cursor yet the page that failed was page 1
+  const retryLoad = useCallback(async () => {
+    if (refreshing || fetchingOlder) return;
+
+    await fetchMessages(cursor);
+  }, [refreshing, fetchingOlder, cursor, fetchMessages]);
+
+  // a list whose page failed is not known to be empty
   const isEmpty = useMemo(
-    () => !messages.length && !fetching,
-    [messages.length, fetching]
+    () => !messages.length && !refreshing && !fetchingOlder && !loadFailed,
+    [messages.length, refreshing, fetchingOlder, loadFailed]
   );
 
   const groupedMessages = useGroupedMessages(messages);
@@ -179,20 +206,25 @@ const usePaginatedMessages = (
   const reset = useCallback(() => {
     setCursor(null);
     setHasMore(true);
+    setLoadFailed(false);
     setLoading(true);
   }, []);
 
   const applyCursor = useCallback((nextCursor: TMessagesCursor | null) => {
     setCursor(nextCursor);
     setHasMore(nextCursor !== null);
+    setLoadFailed(false);
   }, []);
 
   return {
-    fetching,
+    refreshing,
+    fetchingOlder,
     loading,
     hasMore,
+    loadFailed,
     messages,
     loadMore,
+    retryLoad,
     cursor,
     groupedMessages,
     isEmpty,
@@ -214,6 +246,7 @@ export const useConversationMessages = (
   const conversationKey = getConversationKey(conversation);
   const messages = useMessagesByConversationKey(conversationKey);
   const inited = useRef(false);
+  const openConversation = useRef<TConversation | null>(null);
   const detachedFromPresent = useSelector((state: IRootState) =>
     isConversationDetachedSelector(state, conversationKey)
   );
@@ -225,7 +258,11 @@ export const useConversationMessages = (
         { cursor: cursorToFetch, limit: DEFAULT_MESSAGES_LIMIT }
       );
 
-      storeConversationMessages(conversation, rawPage);
+      // closing trims the cache to its newest page, so an older page that lands after that
+      // would sit right above it with everything in between missing
+      if (openConversation.current === conversation) {
+        storeConversationMessages(conversation, rawPage);
+      }
 
       return { nextCursor };
     },
@@ -242,7 +279,14 @@ export const useConversationMessages = (
     inited.current = true;
   }, [paginated]);
 
-  useEffect(() => () => trimConversationMessages(conversation), [conversation]);
+  useEffect(() => {
+    openConversation.current = conversation;
+
+    return () => {
+      openConversation.current = null;
+      trimConversationMessages(conversation);
+    };
+  }, [conversation]);
 
   const { applyCursor } = paginated;
 

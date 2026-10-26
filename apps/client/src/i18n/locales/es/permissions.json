@@ -46,7 +46,7 @@
     "MANAGE_EMOJIS": "Permite crear, actualizar y eliminar emojis.",
     "MANAGE_SETTINGS": "Permite gestionar la configuración del servidor.",
     "MANAGE_USERS": "Permite gestionar los usuarios.",
-    "MOVE_MEMBERS": "Permite mover miembros entre canales de voz.",
+    "MOVE_MEMBERS": "Permite mover miembros entre canales de voz, desconectarlos de la voz y silenciarlos en el servidor.",
     "MANAGE_MESSAGES": "Permite gestionar los mensajes de todos los usuarios editándolos o eliminándolos.",
     "MANAGE_STORAGE": "Permite gestionar el almacenamiento, como habilitar o deshabilitar las subidas.",
     "MANAGE_INVITES": "Permite crear, editar y eliminar invitaciones del servidor.",

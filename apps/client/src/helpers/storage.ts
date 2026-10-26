@@ -5,7 +5,7 @@ export enum LocalStorageKey {
   FLOATING_CARD_POSITION = 'sharkord-floating-card-position',
   RIGHT_SIDEBAR_STATE = 'sharkord-right-sidebar-state',
   VOICE_CHAT_SIDEBAR_STATE = 'sharkord-voice-chat-sidebar-state',
-  VOICE_CHAT_SIDEBAR_WIDTH = 'sharkord-voice-chat-sidebar-width',
+  VOICE_CHAT_HEIGHT = 'sharkord-voice-chat-height',
   VOICE_CHAT_SHOW_USER_BANNERS = 'sharkord-voice-chat-show-user-banners',
   VOLUME_SETTINGS = 'sharkord-volume-settings',
   STREAM_QUALITY_SETTINGS = 'sharkord-stream-quality-settings',

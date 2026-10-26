@@ -28,6 +28,7 @@ import {
   PinnedCardType,
   type TPinnedCard
 } from './hooks/use-pin-card-controller';
+import { useTapToReveal } from './hooks/use-tap-to-reveal';
 import { useVoiceRefs } from './hooks/use-voice-refs';
 import { PictureInPictureButton } from './picture-in-picture-button';
 import { PinButton } from './pin-button';
@@ -72,6 +73,7 @@ const VoiceUserCard = memo(
     const { isSimulcastConsumer } = useVoice();
     const { isActivelySpeaking, speakingEffectClass } =
       useSpeakingState(userId);
+    const { isRevealed, toggleRevealed } = useTapToReveal();
 
     const isCompact = isAnyCardPinned && !isPinned;
     const density = cardDensity(isCompact);
@@ -112,6 +114,7 @@ const VoiceUserCard = memo(
           isActivelySpeaking && speakingEffectClass,
           className
         )}
+        onClick={toggleRevealed}
       >
         {voiceUser.banner && showUserBanners ? (
           <div
@@ -175,7 +178,8 @@ const VoiceUserCard = memo(
             'absolute top-0 right-0 z-10 justify-end',
             density.inset,
             'hidden group-hover/voice-user-card:flex',
-            'has-[[data-state=open]]:flex'
+            'has-[[data-state=open]]:flex',
+            isRevealed && 'pointer-coarse:flex'
           )}
         >
           <div className={cardControlsClass(isCompact)}>
@@ -224,7 +228,7 @@ const VoiceUserCard = memo(
                 !voiceUser.state.soundMuted &&
                 !voiceUser.state.webcamEnabled &&
                 !voiceUser.state.sharingScreen &&
-                'hidden group-hover/voice-stage:inline-flex'
+                'hidden group-hover/voice-stage:inline-flex pointer-coarse:inline-flex'
             )}
           >
             {isAfk && hasVideoStream && <AfkBadge />}
@@ -255,7 +259,7 @@ const VoiceUserCard = memo(
             )}
             <p
               className={cn(
-                'hidden group-hover/voice-stage:block truncate leading-none',
+                'hidden group-hover/voice-stage:block pointer-coarse:block truncate leading-none',
                 density.label
               )}
             >

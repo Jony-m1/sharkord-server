@@ -8,14 +8,14 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CustomEmojiTab } from './custom-emoji-tab';
 import { ALL_EMOJIS, searchEmojis, toTEmojiItem } from './emoji-data';
-import { EmojiGrid } from './emoji-grid';
+import { EmojiGrid, type TEmojiSelectHandler } from './emoji-grid';
 import { NativeEmojiTab } from './native-emoji-tab';
 import { useRecentEmojis } from './use-recent-emojis';
 
 const PICKER_PANEL_CONTENT_CLASS = 'w-[320px] h-100 p-0';
 
 type TEmojiPickerPanelProps = {
-  onEmojiSelect: (emoji: TEmojiItem) => void;
+  onEmojiSelect: TEmojiSelectHandler;
   defaultTab?: 'native' | 'custom';
 };
 
@@ -23,6 +23,12 @@ const EmojiPickerPanel = memo(
   ({ onEmojiSelect, defaultTab = 'native' }: TEmojiPickerPanelProps) => {
     const { t } = useTranslation('common');
     const [search, setSearch] = useState('');
+    // on a touch screen a focused search field raises the keyboard over half the picker
+    const [autoFocusSearch] = useState(() => {
+      const finePointer = window.matchMedia('(pointer: fine)');
+
+      return finePointer.matches;
+    });
     const customEmojis = useCustomEmojis();
     const { addRecent } = useRecentEmojis();
 
@@ -44,8 +50,8 @@ const EmojiPickerPanel = memo(
     );
 
     const handleSearchResultSelect = useCallback(
-      (emoji: TEmojiItem) => {
-        onEmojiSelect(emoji);
+      (emoji: TEmojiItem, keepOpen: boolean) => {
+        onEmojiSelect(emoji, keepOpen);
         requestAnimationFrame(() => addRecent(emoji));
       },
       [onEmojiSelect, addRecent]
@@ -66,7 +72,7 @@ const EmojiPickerPanel = memo(
             value={search}
             onChange={handleSearchChange}
             className="h-9"
-            autoFocus
+            autoFocus={autoFocusSearch}
           />
         </div>
 

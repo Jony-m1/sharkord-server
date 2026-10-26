@@ -9,7 +9,7 @@ import {
   getEmojisByCategory,
   type EmojiCategoryId
 } from './emoji-data';
-import { EmojiGrid } from './emoji-grid';
+import { EmojiGrid, type TEmojiSelectHandler } from './emoji-grid';
 import { useRecentEmojis } from './use-recent-emojis';
 
 type TCategoryBarProps = {
@@ -53,7 +53,7 @@ const CategoryBar = memo(
 
 type TNativeEmojiTabProps = {
   customEmojis: TEmojiItem[];
-  onEmojiSelect: (emoji: TEmojiItem) => void;
+  onEmojiSelect: TEmojiSelectHandler;
 };
 
 const NativeEmojiTab = memo(
@@ -80,8 +80,8 @@ const NativeEmojiTab = memo(
     }, []);
 
     const handleEmojiSelect = useCallback(
-      (emoji: TEmojiItem) => {
-        onEmojiSelect(emoji);
+      (emoji: TEmojiItem, keepOpen: boolean) => {
+        onEmojiSelect(emoji, keepOpen);
         requestAnimationFrame(() => addRecent(emoji));
       },
       [addRecent, onEmojiSelect]

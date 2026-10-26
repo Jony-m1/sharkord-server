@@ -154,6 +154,35 @@ const isMediaLinksOnly = (html: string, media: TFoundMedia[]): boolean => {
   return mediaLinks > 0 && !otherContent;
 };
 
+// media that fails to load (a format the browser cannot decode, a file gone from disk) gives way
+// to what it stood in for: the card of its file, and the link it repeated in the text
+const getShownMedia = (
+  media: TFoundMedia[],
+  failedUrls: ReadonlySet<string>
+): TFoundMedia[] => {
+  if (!failedUrls.size) return media;
+
+  return media.filter((item) => !failedUrls.has(item.url));
+};
+
+// a picture or a video already shows its file above the cards, so a card would only repeat it.
+// audio keeps its card next to the player, as do documents and archives. given only the media
+// that is shown, a file whose media failed keeps its card and with it the way to download it
+const getAttachmentFiles = <TAttachment extends { id: number }>(
+  files: TAttachment[],
+  media: TFoundMedia[]
+): TAttachment[] => {
+  const inlineFileIds = new Set<number>();
+
+  for (const item of media) {
+    if (item.fileId !== undefined && item.type !== 'audio') {
+      inlineFileIds.add(item.fileId);
+    }
+  }
+
+  return files.filter((file) => !inlineFileIds.has(file.id));
+};
+
 const DIRECT_MEDIA_TYPES = new Set(['image', 'video', 'audio']);
 
 const isMediaMetadata = (metadata: TMessageMetadataLike | null | undefined) => {
@@ -223,7 +252,9 @@ const extractMessageOpenGraph = (
 export {
   extractMessageOpenGraph,
   extractYoutubeVideoIds,
+  getAttachmentFiles,
   getDisplayHostname,
+  getShownMedia,
   getYoutubeInfo,
   getYoutubeVideoId,
   hasSpecializedLinkOverride,

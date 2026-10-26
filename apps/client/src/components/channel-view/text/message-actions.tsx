@@ -1,17 +1,7 @@
 import { EmojiPicker } from '@/components/emoji-picker';
-import { useRecentEmojis } from '@/components/emoji-picker/use-recent-emojis';
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { Protect } from '@/components/protect';
-import {
-  shouldUseFallbackImage,
-  withoutShadowedEmojis,
-  type TEmojiItem
-} from '@/components/tiptap-input/helpers';
-import { openThreadSidebar } from '@/features/app/actions';
 import { useIsShiftHeld } from '@/features/app/hooks';
-import { requestConfirmation } from '@/features/dialogs/actions';
-import { useCustomEmojis } from '@/features/server/emojis/hooks';
-import { getTRPCClient } from '@/lib/trpc';
 import { Permission, PluginSlot, TestId } from '@sharkord/shared';
 import { IconButton } from '@sharkord/ui';
 import {
@@ -24,9 +14,11 @@ import {
   Trash,
   Trash2
 } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
+import { useMessageActionHandlers } from './hooks/use-message-action-handlers';
+import { useQuickReactionEmojis } from './hooks/use-quick-reaction-emojis';
+import { QuickReactionButton } from './quick-reaction-button';
 
 const MAX_QUICK_EMOJIS = 4;
 
@@ -42,38 +34,6 @@ type TMessageActionsProps = {
   disablePin?: boolean;
 };
 
-type TQuickReactionButtonProps = {
-  emoji: TEmojiItem;
-  onSelect: (emoji: TEmojiItem) => void;
-};
-
-const QuickReactionButton = memo(
-  ({ emoji, onSelect }: TQuickReactionButtonProps) => {
-    const handleClick = useCallback(() => onSelect(emoji), [onSelect, emoji]);
-
-    return (
-      <button
-        type="button"
-        onClick={handleClick}
-        className="w-6 h-6 flex items-center justify-center hover:bg-accent rounded-md transition-colors text-md"
-        title={`:${emoji.shortcodes[0]}:`}
-      >
-        {emoji.emoji && !shouldUseFallbackImage(emoji) ? (
-          <span>{emoji.emoji}</span>
-        ) : emoji.fallbackImage ? (
-          <img
-            src={emoji.fallbackImage}
-            alt={emoji.name}
-            className="w-5 h-5 object-contain"
-          />
-        ) : (
-          <span>{emoji.name}</span>
-        )}
-      </button>
-    );
-  }
-);
-
 const MessageActions = memo(
   ({
     onEdit,
@@ -87,80 +47,15 @@ const MessageActions = memo(
     onReply
   }: TMessageActionsProps) => {
     const { t } = useTranslation();
-    const { recentEmojis } = useRecentEmojis();
-    const customEmojis = useCustomEmojis();
-
-    // a built-in picked before a custom emoji took its name would show itself
-    // but react with the custom one
-    const recentEmojisToShow = useMemo(() => {
-      const reachableEmojis = withoutShadowedEmojis(recentEmojis, customEmojis);
-
-      return reachableEmojis.slice(0, MAX_QUICK_EMOJIS);
-    }, [recentEmojis, customEmojis]);
-
+    const recentEmojisToShow = useQuickReactionEmojis(MAX_QUICK_EMOJIS);
     const isShiftHeld = useIsShiftHeld();
+    const { onDelete, onToggleReaction, onReplyInThread, onTogglePin } =
+      useMessageActionHandlers({ messageId, channelId });
 
     const pluginProps = useMemo(
       () => ({ messageId, channelId }),
       [messageId, channelId]
     );
-
-    const onDeleteClick = useCallback(async () => {
-      if (!isShiftHeld) {
-        const choice = await requestConfirmation({
-          title: t('deleteMessageTitle'),
-          message: t('deleteMessageConfirm'),
-          confirmLabel: t('deleteLabel'),
-          cancelLabel: t('cancel')
-        });
-
-        if (!choice) return;
-      }
-
-      const trpc = getTRPCClient();
-      try {
-        await trpc.messages.delete.mutate({ messageId });
-        toast.success(t('messageDeleted'));
-      } catch {
-        toast.error(t('failedDeleteMessage'));
-      }
-    }, [isShiftHeld, messageId, t]);
-
-    const onEmojiSelect = useCallback(
-      async (emoji: TEmojiItem) => {
-        const trpc = getTRPCClient();
-
-        try {
-          await trpc.messages.toggleReaction.mutate({
-            messageId,
-            emoji: emoji.shortcodes[0]
-          });
-        } catch (error) {
-          toast.error(t('failedAddReaction'));
-
-          console.error('Error adding reaction:', error);
-        }
-      },
-      [messageId, t]
-    );
-
-    const onReplyClick = useCallback(() => {
-      openThreadSidebar(messageId, channelId);
-    }, [messageId, channelId]);
-
-    const onPinClick = useCallback(async () => {
-      const trpc = getTRPCClient();
-
-      try {
-        await trpc.messages.togglePin.mutate({ messageId });
-
-        toast.success(t('messagePinToggled'));
-      } catch (error) {
-        toast.error(t('failedTogglePin'));
-
-        console.error('Error toggling pin status:', error);
-      }
-    }, [messageId, t]);
 
     return (
       <div className="gap-1 absolute right-0 -top-6 z-10 hidden group-hover:flex [&:has([data-state=open])]:flex items-center space-x-1 rounded-lg shadow-lg border border-border p-2 transition-all bg-background">
@@ -178,7 +73,7 @@ const MessageActions = memo(
             size="sm"
             variant="ghost"
             icon={MessageSquareText}
-            onClick={onReplyClick}
+            onClick={onReplyInThread}
             title={t('replyInThread')}
             data-testid={TestId.MESSAGE_REPLY_IN_THREAD}
           />
@@ -199,7 +94,7 @@ const MessageActions = memo(
               variant="ghost"
               icon={isShiftHeld ? Trash2 : Trash}
               className={isShiftHeld ? 'text-destructive' : ''}
-              onClick={onDeleteClick}
+              onClick={onDelete}
               title={t('deleteMessageTitle')}
               data-testid={TestId.MESSAGE_DELETE}
             />
@@ -211,7 +106,7 @@ const MessageActions = memo(
               size="sm"
               variant="ghost"
               icon={isPinned ? PinOff : Pin}
-              onClick={onPinClick}
+              onClick={onTogglePin}
               title={isPinned ? t('unpinMessage') : t('pinMessage')}
               data-testid={TestId.MESSAGE_PIN}
             />
@@ -229,11 +124,11 @@ const MessageActions = memo(
               <QuickReactionButton
                 key={emoji.name}
                 emoji={emoji}
-                onSelect={onEmojiSelect}
+                onSelect={onToggleReaction}
               />
             ))}
 
-            <EmojiPicker onEmojiSelect={onEmojiSelect}>
+            <EmojiPicker onEmojiSelect={onToggleReaction}>
               <IconButton
                 variant="ghost"
                 icon={Smile}

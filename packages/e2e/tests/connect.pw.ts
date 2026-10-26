@@ -59,9 +59,9 @@ test.describe('Connect Screen', () => {
     const serverName = page.getByTestId(TestId.LEFT_SIDEBAR_SERVER_NAME);
     await expect(serverName).toHaveText('Test Server');
 
-    // the two seeded channels plus the four the e2e fixtures add, see seed-e2e.ts
+    // the two seeded channels plus the five the e2e fixtures add, see seed-e2e.ts
     const channelItems = page.getByTestId(TestId.CHANNEL_ITEM);
-    await expect(channelItems).toHaveCount(6);
+    await expect(channelItems).toHaveCount(7);
 
     const categoryItems = page.getByTestId(TestId.CATEGORY_ITEM);
     await expect(categoryItems).toHaveCount(3);

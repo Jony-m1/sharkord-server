@@ -36,7 +36,11 @@ const CallTimer = memo(() => {
 
   const since = mode === 'own' ? joinedAt : (startedAt ?? joinedAt);
 
-  if (since === undefined) return null;
+  // empty until the join reports its time, but it still carries data-call-timer: older desktop
+  // builds add a timer of their own wherever that attribute is missing, which flashed a second one
+  if (since === undefined) {
+    return <span data-call-timer={mode} className="ml-auto" />;
+  }
 
   const Icon = mode === 'own' ? User : Users;
 

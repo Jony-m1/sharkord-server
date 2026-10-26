@@ -1,6 +1,7 @@
 import { StreamKind } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import {
+  allSettledOrThrow,
   getAfkDeafenChange,
   isOwnProducerEvent,
   isScreenPickerCancel
@@ -130,5 +131,94 @@ describe('isScreenPickerCancel', () => {
     ).toBe(false);
     expect(isScreenPickerCancel(new Error('No video track'))).toBe(false);
     expect(isScreenPickerCancel(undefined)).toBe(false);
+  });
+});
+
+// init calls this from inside the voice provider, with mediasoup transports and media
+// devices that the client's bun tests have no browser to create.
+// the ordering they rely on is covered here, the flows themselves by the voice e2e specs
+describe('allSettledOrThrow', () => {
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  const deferred = () => {
+    let resolve: () => void = () => {};
+    let reject: (reason: Error) => void = () => {};
+    const promise = new Promise<void>((onResolve, onReject) => {
+      resolve = onResolve;
+      reject = onReject;
+    });
+
+    return { promise, resolve, reject };
+  };
+
+  test('should resolve only once every step has resolved', async () => {
+    const producerTransport = deferred();
+    const consumerTransport = deferred();
+    let done = false;
+
+    const all = allSettledOrThrow([
+      producerTransport.promise,
+      consumerTransport.promise
+    ]);
+    const finished = all.then(() => {
+      done = true;
+    });
+
+    producerTransport.resolve();
+    await flush();
+
+    expect(done).toBe(false);
+
+    consumerTransport.resolve();
+    await finished;
+
+    expect(done).toBe(true);
+  });
+
+  test('should fail only once a slower step has settled, so the cleanup after it misses nothing', async () => {
+    const mic = deferred();
+    let micSettled = false;
+    let micSettledWhenFailed: boolean | undefined;
+
+    const micStep = mic.promise.then(() => {
+      micSettled = true;
+    });
+    const all = allSettledOrThrow([
+      Promise.reject(new Error('getProducers failed')),
+      micStep
+    ]);
+    const failure = all.catch((error: Error) => {
+      micSettledWhenFailed = micSettled;
+
+      return error.message;
+    });
+
+    await flush();
+
+    expect(micSettledWhenFailed).toBeUndefined();
+
+    mic.resolve();
+
+    expect(await failure).toBe('getProducers failed');
+    expect(micSettledWhenFailed).toBe(true);
+  });
+
+  test('should rethrow the first failure in the order the steps were given', async () => {
+    const producerTransport = deferred();
+    const consumerTransport = deferred();
+
+    const all = allSettledOrThrow([
+      producerTransport.promise,
+      consumerTransport.promise
+    ]);
+
+    consumerTransport.reject(new Error('consumer transport failed'));
+    producerTransport.reject(new Error('producer transport failed'));
+
+    await expect(all).rejects.toThrow('producer transport failed');
+  });
+
+  test('should resolve when there are no steps', async () => {
+    await expect(allSettledOrThrow([])).resolves.toBeUndefined();
   });
 });

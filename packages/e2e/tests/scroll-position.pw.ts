@@ -78,7 +78,9 @@ test('a channel full of media opens at the bottom and stays there', async ({
     })
     .toBeLessThanOrEqual(BOTTOM_THRESHOLD);
 
-  await waitForStableScroll(container);
+  // the same window for settling: media that cannot load is taken out of the list as each one
+  // fails, and with the external hosts unreachable those failures keep arriving for seconds
+  await waitForStableScroll(container, 30_000);
 
   expect((await readScroll(container)).fromBottom).toBeLessThanOrEqual(
     BOTTOM_THRESHOLD

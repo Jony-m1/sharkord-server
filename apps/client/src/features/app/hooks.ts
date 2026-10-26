@@ -14,6 +14,7 @@ import {
   isChannelMutedSelector,
   isShiftHeldSelector,
   loadingPluginsSelector,
+  membersDrawerOpenSelector,
   messageJumpTargetSelector,
   messageSentSoundSelector,
   micModeSelector,
@@ -45,6 +46,9 @@ export const useThreadSidebar = () => useSelector(threadSidebarDataSelector);
 
 export const useIsVoiceChatSidebarOpen = () =>
   useSelector(voiceChatSidebarOpenSelector);
+
+export const useIsMembersDrawerOpen = () =>
+  useSelector(membersDrawerOpenSelector);
 
 export const useAutoJoinLastChannel = () =>
   useSelector(autoJoinLastChannelSelector);

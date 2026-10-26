@@ -11,6 +11,7 @@ import { createCachedSelector } from 're-reselect';
 import {
   hotkeysEnabledSelector,
   selectedDmChannelIdSelector,
+  selectedThreadFromConversationSelector,
   selectedThreadSelector,
   threadSidebarDataSelector
 } from '../app/selectors';
@@ -24,7 +25,8 @@ import {
   channelsReadStatesSelector,
   channelsSelector,
   currentVoiceChannelIdSelector,
-  selectedChannelIdSelector
+  selectedChannelIdSelector,
+  serverVoiceChannelsSelector
 } from './channels/selectors';
 import { emojisSelector } from './emojis/selectors';
 import {
@@ -53,7 +55,9 @@ import {
   usersSelector
 } from './users/selectors';
 import {
+  joiningVoiceChannelIdSelector,
   ownVoiceStateSelector,
+  voiceChannelIdByUserIdSelector,
   voiceChannelStateSelector
 } from './voice/selectors';
 
@@ -87,6 +91,12 @@ export const activeFullscreenPluginIdSelector = (state: IRootState) =>
   state.server.activeFullscreenPluginId;
 
 export const dmsOpenSelector = (state: IRootState) => state.server.dmsOpen;
+
+export const lastServerChannelIdSelector = (state: IRootState) =>
+  state.server.lastServerChannelId;
+
+export const mobileContentClosingSelector = (state: IRootState) =>
+  state.server.mobileContentClosing;
 
 export const ownUserRolesSelector = createSelector(
   [ownUserSelector, rolesSelector],
@@ -221,6 +231,48 @@ export const ownVoiceUserSelector = createSelector(
   (ownUserId, voiceUsers) =>
     voiceUsers?.find((voiceUser) => voiceUser.id === ownUserId)
 );
+
+// the call is ours from the moment it is picked, even while the one it replaces is still being
+// left, but the server only lists us in it once its join event arrives. it follows the join
+// itself rather than the current call: a call kept after a reconnect is current without
+// listing us, and nothing is joining it
+export const isJoiningVoiceChannelSelector = createCachedSelector(
+  [
+    joiningVoiceChannelIdSelector,
+    ownUserIdSelector,
+    voiceChannelStateSelector,
+    (_: IRootState, channelId: number) => channelId
+  ],
+  (joiningVoiceChannelId, ownUserId, voiceState, channelId) => {
+    if (joiningVoiceChannelId !== channelId || ownUserId === undefined) {
+      return false;
+    }
+
+    return !voiceState?.users[ownUserId];
+  }
+)((_, channelId: number) => channelId);
+
+// the server voice channel someone is in, only when this client can see it. every client hears
+// about every call, so the call is looked up among the channels the server gave this client
+export const visibleServerVoiceChannelIdByUserIdSelector = createCachedSelector(
+  [serverVoiceChannelsSelector, voiceChannelIdByUserIdSelector],
+  (serverVoiceChannels, voiceChannelId) => {
+    const isVisible = serverVoiceChannels.some(
+      (channel) => channel.id === voiceChannelId
+    );
+
+    if (!isVisible) return undefined;
+
+    return voiceChannelId;
+  }
+)((_, userId: number) => userId);
+
+// where a moderator can move someone: every server voice channel but the one they are in
+export const voiceMoveTargetsByUserIdSelector = createCachedSelector(
+  [serverVoiceChannelsSelector, voiceChannelIdByUserIdSelector],
+  (serverVoiceChannels, voiceChannelId) =>
+    serverVoiceChannels.filter((channel) => channel.id !== voiceChannelId)
+)((_, userId: number) => userId);
 
 // this approach has some limitations but it should work for most cases
 export const hasUnreadMentionsSelector = createCachedSelector(
@@ -462,9 +514,11 @@ export const isThreadOpenSelector = (
 };
 
 // on a phone the channel list and the open conversation are two screens; this says whether
-// something is open in whichever list is showing, the same order ContentWrapper renders in
+// something is open in whichever list is showing, the same order ContentWrapper renders in.
+// while back is sliding the list over the conversation, the list is what is showing
 export const isMobileContentOpenSelector = createSelector(
   [
+    mobileContentClosingSelector,
     activeFullscreenPluginIdSelector,
     threadsOpenSelector,
     selectedThreadSelector,
@@ -473,6 +527,7 @@ export const isMobileContentOpenSelector = createSelector(
     selectedChannelIdSelector
   ],
   (
+    mobileContentClosing,
     activeFullscreenPluginId,
     threadsOpen,
     selectedThread,
@@ -480,6 +535,7 @@ export const isMobileContentOpenSelector = createSelector(
     selectedDmChannelId,
     selectedChannelId
   ) => {
+    if (mobileContentClosing) return false;
     if (activeFullscreenPluginId) return true;
     if (threadsOpen) return selectedThread !== undefined;
     if (dmsOpen) return selectedDmChannelId !== undefined;
@@ -487,3 +543,13 @@ export const isMobileContentOpenSelector = createSelector(
     return selectedChannelId !== undefined;
   }
 );
+
+// below lg a thread opened from a conversation covers it in the threads view (openThread), so
+// closing that thread goes back to the conversation rather than to the followed threads list
+export const isThreadOverConversationSelector = (state: IRootState) => {
+  const threadsOpen = threadsOpenSelector(state);
+  const selectedThreadFromConversation =
+    selectedThreadFromConversationSelector(state);
+
+  return threadsOpen && selectedThreadFromConversation;
+};

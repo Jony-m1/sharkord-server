@@ -79,7 +79,7 @@ const DirectMessageItem = memo(({ dm, selected }: TDirectMessageItemProps) => {
         title={t('closeConversation')}
         onClick={onClose}
         data-testid={TestId.DM_CLOSE}
-        className="mr-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        className="mr-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
       />
     </div>
   );

@@ -96,9 +96,12 @@ test('a message in a channel hidden behind the threads view stays unread', async
     // never fail it
     await watcher!.waitForTimeout(1_000);
 
-    // through the dms and back, so the channel list shows without uncovering the channel
-    await watcher!.getByTestId(TestId.DM_TOGGLE).click();
-    await watcher!.getByTestId(TestId.DM_TOGGLE).click();
+    // the server's name closes the channel behind the threads view, so closing the threads
+    // shows the channel list without uncovering the channel. the dms are no way round any
+    // more: leaving them opens the channel that was open before them
+    await watcher!.getByTestId(TestId.LEFT_SIDEBAR_SERVER_NAME).click();
+    await threadsToggle(watcher!).click();
+    await expect(watcher!.getByTestId(TestId.CHANNEL_HEADER)).toHaveCount(0);
 
     await expect(
       watcher!

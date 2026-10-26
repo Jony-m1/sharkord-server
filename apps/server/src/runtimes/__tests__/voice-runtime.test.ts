@@ -529,7 +529,7 @@ describe('VoiceRuntime call times', () => {
 
     runtime.addUser(2, { micMuted: false, soundMuted: false });
 
-    expect((await getUserTimeStats(2)).inVoice).toBe(true);
+    expect((await getUserTimeStats(2))?.inVoice).toBe(true);
 
     clock.mockReturnValue(1_120_000);
     runtime.removeUser(2);

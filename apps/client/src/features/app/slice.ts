@@ -1,3 +1,4 @@
+import { isCallChatScreenLayout } from '@/helpers/call-chat-layout';
 import {
   getLocalStorageItem,
   getLocalStorageItemAsJSON,
@@ -27,6 +28,7 @@ export interface TAppState {
   hotkeysEnabled: boolean;
   selectedDmChannelId: number | undefined;
   selectedThread: TThreadTarget | undefined;
+  selectedThreadFromConversation: boolean;
   browserNotifications: boolean;
   browserNotificationsForMentions: boolean;
   browserNotificationsForDms: boolean;
@@ -36,6 +38,7 @@ export interface TAppState {
   mutedChannelIds: number[];
   messageJumpTarget: TMessageJumpToTarget | undefined;
   voiceChatSidebarOpen: boolean;
+  membersDrawerOpen: boolean;
   pluginSlotDebug: boolean;
   modifierKeysHeldMap: Record<string, boolean>;
 }
@@ -64,6 +67,7 @@ const initialState: TAppState = {
   ),
   selectedDmChannelId: undefined,
   selectedThread: undefined,
+  selectedThreadFromConversation: false,
   browserNotifications: getLocalStorageItemBool(
     LocalStorageKey.BROWSER_NOTIFICATIONS,
     false
@@ -92,10 +96,13 @@ const initialState: TAppState = {
     getLocalStorageItemAsJSON<number[]>(LocalStorageKey.MUTED_CHANNEL_IDS) ??
     [],
   messageJumpTarget: undefined,
-  voiceChatSidebarOpen: getLocalStorageItemBool(
-    LocalStorageKey.VOICE_CHAT_SIDEBAR_STATE,
-    false
-  ),
+  // a call's chat sits under the call where both fit, so it starts open there. elsewhere, a
+  // phone either way up, it is a screen of its own over the call, so the app starts on the call
+  // whatever was saved
+  voiceChatSidebarOpen:
+    !isCallChatScreenLayout() &&
+    getLocalStorageItemBool(LocalStorageKey.VOICE_CHAT_SIDEBAR_STATE, true),
+  membersDrawerOpen: false,
   pluginSlotDebug: getLocalStorageItemBool(
     LocalStorageKey.PLUGIN_SLOT_DEBUG,
     false
@@ -124,7 +131,12 @@ export const appSlice = createSlice({
       }>
     ) => {
       state.modViewOpen = action.payload.modViewOpen;
-      state.modViewUserId = action.payload.userId;
+
+      // closing keeps the user, so the sheet still has its content while it slides out; the
+      // next open replaces it, and the content is unmounted once the sheet is closed anyway
+      if (action.payload.modViewOpen) {
+        state.modViewUserId = action.payload.userId;
+      }
     },
     setThreadSidebarOpen: (
       state,
@@ -161,6 +173,15 @@ export const appSlice = createSlice({
       action: PayloadAction<TThreadTarget | undefined>
     ) => {
       state.selectedThread = action.payload;
+      // only openThread marks a thread as opened from a conversation, and anything that picks
+      // or clears one after it, the threads list or back, ends that
+      state.selectedThreadFromConversation = false;
+    },
+    setSelectedThreadFromConversation: (
+      state,
+      action: PayloadAction<boolean>
+    ) => {
+      state.selectedThreadFromConversation = action.payload;
     },
     setBrowserNotifications: (state, action: PayloadAction<boolean>) => {
       state.browserNotifications = action.payload;
@@ -197,6 +218,9 @@ export const appSlice = createSlice({
     },
     setVoiceChatSidebarOpen: (state, action: PayloadAction<boolean>) => {
       state.voiceChatSidebarOpen = action.payload;
+    },
+    setMembersDrawerOpen: (state, action: PayloadAction<boolean>) => {
+      state.membersDrawerOpen = action.payload;
     },
     setPluginSlotDebug: (state, action: PayloadAction<boolean>) => {
       state.pluginSlotDebug = action.payload;

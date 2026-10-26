@@ -1,63 +1,67 @@
 import { FullScreenImage } from '@/components/fullscreen-image/content';
-import { Skeleton } from '@sharkord/ui';
-import { memo, useCallback, useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
+import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { OverrideLayout } from './layout';
-import { LinkOverride } from './link';
+import { MediaRemoveButton } from './media-remove-button';
 
 type TImageOverrideProps = {
   src: string;
   alt?: string;
   title?: string;
+  fileId?: number;
+  onRemoveFile?: (fileId: number) => void;
+  onMediaError?: (url: string) => void;
 };
 
-const ImageOverride = memo(({ src, alt }: TImageOverrideProps) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+const ImageOverride = memo(
+  ({ src, alt, fileId, onRemoveFile, onMediaError }: TImageOverrideProps) => {
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const [loaded, setLoaded] = useState(false);
+    const [error, setError] = useState(false);
 
-  const onLoad = useCallback(
-    (event: React.SyntheticEvent<HTMLImageElement>) => {
-      setLoading(false);
-      // @ts-expect-error - green what is your problem green what is your problem me say alone ramp
-      event.target.style.opacity = 1;
-    },
-    []
-  );
+    // a picture the page has shown before is ready as soon as the element exists, so it
+    // shows in the first frame instead of blinking out on every channel switch
+    useLayoutEffect(() => {
+      const image = wrapperRef.current?.querySelector('img');
 
-  const onError = useCallback(() => {
-    setError(true);
-  }, []);
+      if (image?.complete && image.naturalWidth > 0) {
+        setLoaded(true);
+      }
+    }, []);
 
-  useEffect(() => {
-    setTimeout(() => {
-      setLoading((prev) => {
-        if (prev === false) return prev;
+    const onLoad = useCallback(() => {
+      setLoaded(true);
+    }, []);
 
-        return true;
-      });
-    }, 0);
-  }, []);
+    const onError = useCallback(() => {
+      setError(true);
+      onMediaError?.(src);
+    }, [onMediaError, src]);
 
-  if (error) return null;
+    if (error) return null;
 
-  return (
-    <OverrideLayout>
-      {loading ? (
-        <Skeleton className="w-75 h-75" />
-      ) : (
-        <FullScreenImage
-          src={src}
-          alt={alt}
-          onLoad={onLoad}
-          onError={onError}
-          className="max-w-full max-h-75 object-contain object-left w-fit"
-          style={{ opacity: 0 }}
-          crossOrigin="anonymous"
-        />
-      )}
+    return (
+      <OverrideLayout>
+        <div ref={wrapperRef} className="group/media relative w-fit max-w-full">
+          <FullScreenImage
+            src={src}
+            alt={alt}
+            onLoad={onLoad}
+            onError={onError}
+            className={cn(
+              'max-w-full max-h-75 object-contain object-left w-fit',
+              !loaded && 'opacity-0'
+            )}
+            crossOrigin="anonymous"
+          />
 
-      <LinkOverride link={src} label="Open in new tab" />
-    </OverrideLayout>
-  );
-});
+          {fileId !== undefined && onRemoveFile && (
+            <MediaRemoveButton fileId={fileId} onRemoveFile={onRemoveFile} />
+          )}
+        </div>
+      </OverrideLayout>
+    );
+  }
+);
 
 export { ImageOverride };

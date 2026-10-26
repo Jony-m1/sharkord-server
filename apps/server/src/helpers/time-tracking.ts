@@ -63,15 +63,20 @@ const flushTrackedTime = () => {
   );
 };
 
+// undefined when there is no such user, so a caller asking about someone else can tell an
+// unknown id apart from a user with no time yet
 const getUserTimeStats = async (userId: number) => {
   const totals = await getUserTimeTotals(userId);
+
+  if (!totals) return undefined;
+
   const now = Date.now();
   const online = onlineSince.get(userId);
   const voice = voiceSince.get(userId);
 
   return {
-    onlineTimeMs: (totals?.onlineTimeMs ?? 0) + (online ? now - online : 0),
-    voiceTimeMs: (totals?.voiceTimeMs ?? 0) + (voice ? now - voice : 0),
+    onlineTimeMs: totals.onlineTimeMs + (online ? now - online : 0),
+    voiceTimeMs: totals.voiceTimeMs + (voice ? now - voice : 0),
     online: online !== undefined,
     inVoice: voice !== undefined
   };

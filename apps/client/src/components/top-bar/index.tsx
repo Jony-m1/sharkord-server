@@ -2,10 +2,13 @@ import { ChannelHeaderActions } from '@/components/channel-view/text/channel-hea
 import {
   useCurrentVoiceChannelId,
   useIsCurrentVoiceChannelSelected,
-  useVisibleVoiceChatChannelId
+  useVisibleVoiceChatChannelId,
+  useVoiceViewChannelId
 } from '@/features/server/channels/hooks';
 import { usePublicServerSettings } from '@/features/server/hooks';
-import { PluginSlot } from '@sharkord/shared';
+import { TOP_BAR_HIDDEN_QUERY } from '@/helpers/call-chat-layout';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { PluginSlot, TestId } from '@sharkord/shared';
 import { Button, Tooltip } from '@sharkord/ui';
 import { PanelRight, PanelRightClose } from 'lucide-react';
 import { memo } from 'react';
@@ -13,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { PluginSlotRenderer } from '../plugin-slot-renderer';
 import { ServerSearch } from './server-search';
 import { VoiceButtons } from './voice-buttons';
+import { VoiceChatToggle } from './voice-chat-toggle';
 import { VoiceChatTopic } from './voice-chat-topic';
 
 type TTopBarProps = {
@@ -25,10 +29,15 @@ const TopBar = memo(({ onToggleRightSidebar, isOpen }: TTopBarProps) => {
   const isCurrentVoiceChannelSelected = useIsCurrentVoiceChannelSelected();
   const currentVoiceChannelId = useCurrentVoiceChannelId();
   const visibleVoiceChatChannelId = useVisibleVoiceChatChannelId();
+  // the chat belongs to the call on screen, whether or not it is the call we are in
+  const voiceViewChannelId = useVoiceViewChannelId();
+  // below lg the call's header or the chat's own carries the chat's buttons, and a second,
+  // hidden copy here would mount its plugin slot twice
+  const isHidden = useMediaQuery(TOP_BAR_HIDDEN_QUERY);
   const settings = usePublicServerSettings();
 
   return (
-    <div className="hidden lg:grid h-12 w-full grid-cols-[1fr_minmax(320px,1.4fr)_1fr] items-center border-b border-border bg-card px-4 transition-all duration-300 ease-in-out gap-2">
+    <div className="hidden lg:grid h-12 w-full grid-cols-[1fr_minmax(320px,1.4fr)_1fr] items-center border-b border-border bg-card px-4 gap-2">
       <div className="flex min-w-0 items-center gap-2">
         {visibleVoiceChatChannelId && (
           <VoiceChatTopic channelId={visibleVoiceChatChannelId} />
@@ -41,16 +50,23 @@ const TopBar = memo(({ onToggleRightSidebar, isOpen }: TTopBarProps) => {
 
       <div className="flex min-w-0 items-center justify-end gap-2">
         <PluginSlotRenderer slotId={PluginSlot.TOPBAR_RIGHT} />
-        {visibleVoiceChatChannelId && (
+        {visibleVoiceChatChannelId && !isHidden && (
           <ChannelHeaderActions channelId={visibleVoiceChatChannelId} />
         )}
         {isCurrentVoiceChannelSelected && currentVoiceChannelId && (
           <VoiceButtons currentVoiceChannelId={currentVoiceChannelId} />
         )}
+        {voiceViewChannelId && (
+          <VoiceChatToggle
+            channelId={voiceViewChannelId}
+            testId={TestId.VOICE_CHAT_TOGGLE}
+          />
+        )}
         <Button
           variant="ghost"
           size="sm"
           onClick={onToggleRightSidebar}
+          data-testid={TestId.MEMBERS_TOGGLE}
           className="h-7 px-2 transition-all duration-200 ease-in-out"
         >
           {isOpen ? (

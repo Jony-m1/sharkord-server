@@ -3,21 +3,32 @@ import {
   type TEmojiItem
 } from '@/components/tiptap-input/helpers';
 import { memo, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { VirtuosoGrid } from 'react-virtuoso';
 import { GRID_COLS } from './emoji-data';
 
+// keepOpen is a shift click, which picks several emojis in a row as on Discord
+type TEmojiSelectHandler = (emoji: TEmojiItem, keepOpen: boolean) => void;
+
 type TEmojiButtonProps = {
   emoji: TEmojiItem;
-  onSelect: (emoji: TEmojiItem) => void;
+  onSelect: TEmojiSelectHandler;
 };
 
 const EmojiButton = memo(({ emoji, onSelect }: TEmojiButtonProps) => {
   const useImage = shouldUseFallbackImage(emoji);
 
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onSelect(emoji, event.shiftKey);
+    },
+    [onSelect, emoji]
+  );
+
   return (
     <button
       type="button"
-      onClick={() => onSelect(emoji)}
+      onClick={handleClick}
       className="w-8 h-8 flex items-center justify-center hover:bg-accent rounded-md transition-colors cursor-pointer"
       title={`:${emoji.shortcodes[0]}:`}
     >
@@ -41,10 +52,11 @@ const EmojiButton = memo(({ emoji, onSelect }: TEmojiButtonProps) => {
 
 type TEmojiGridProps = {
   emojis: TEmojiItem[];
-  onSelect: (emoji: TEmojiItem) => void;
+  onSelect: TEmojiSelectHandler;
 };
 
 const EmojiGrid = memo(({ emojis, onSelect }: TEmojiGridProps) => {
+  const { t } = useTranslation('settings');
   const rowCount = useMemo(
     () => Math.ceil(emojis.length / GRID_COLS),
     [emojis.length]
@@ -62,7 +74,7 @@ const EmojiGrid = memo(({ emojis, onSelect }: TEmojiGridProps) => {
   if (emojis.length === 0) {
     return (
       <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-        No emojis found
+        {t('noEmojisFound')}
       </div>
     );
   }
@@ -89,4 +101,4 @@ const EmojiGrid = memo(({ emojis, onSelect }: TEmojiGridProps) => {
   );
 });
 
-export { EmojiButton, EmojiGrid };
+export { EmojiButton, EmojiGrid, type TEmojiSelectHandler };

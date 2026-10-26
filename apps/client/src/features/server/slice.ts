@@ -60,6 +60,9 @@ export interface IServerState {
   ownUserPasswordSet: boolean;
   selectedChannelId: number | undefined;
   currentVoiceChannelId: number | undefined;
+  // the call being joined, from the moment it is picked until the server lists us in it. it
+  // outlasts leaving the call it replaces, which clears the current one for that round trip
+  joiningVoiceChannelId: number | undefined;
   // it lives here rather than in the subscription because joining the new room needs the voice provider context
   voiceMoveTargetChannelId: number | undefined;
   messagesMap: TMessagesMap;
@@ -100,6 +103,8 @@ export interface IServerState {
   activeFullscreenPluginId: string | undefined;
   dmsOpen: boolean;
   threadsOpen: boolean;
+  lastServerChannelId: number | undefined;
+  mobileContentClosing: boolean;
 }
 
 const initialState: IServerState = {
@@ -115,6 +120,7 @@ const initialState: IServerState = {
   emojis: [],
   selectedChannelId: undefined,
   currentVoiceChannelId: undefined,
+  joiningVoiceChannelId: undefined,
   voiceMoveTargetChannelId: undefined,
   messagesMap: {},
   detachedConversations: {},
@@ -162,6 +168,8 @@ const initialState: IServerState = {
   activeFullscreenPluginId: undefined,
   dmsOpen: false,
   threadsOpen: false,
+  lastServerChannelId: undefined,
+  mobileContentClosing: false,
   hideOwnScreenShare: getLocalStorageItemBool(
     LocalStorageKey.HIDE_OWN_SCREEN_SHARE,
     false
@@ -229,6 +237,8 @@ export const serverSlice = createSlice({
       state.ownUserPasswordSet = action.payload.ownUserPasswordSet;
       state.publicSettings = action.payload.publicSettings;
       state.voiceMap = action.payload.voiceMap;
+      // a join still waiting for its event when the connection dropped will not hear it now
+      state.joiningVoiceChannelId = undefined;
       state.externalStreamsMap = action.payload.externalStreamsMap;
       state.serverId = action.payload.serverId;
       state.channelPermissions = action.payload.channelPermissions;
@@ -619,6 +629,8 @@ export const serverSlice = createSlice({
       if (action.payload) {
         state.activeFullscreenPluginId = undefined;
         state.threadsOpen = false;
+        // a channel picked while the list slides back in stays open
+        state.mobileContentClosing = false;
       }
     },
     setCurrentVoiceChannelId: (
@@ -626,6 +638,12 @@ export const serverSlice = createSlice({
       action: PayloadAction<number | undefined>
     ) => {
       state.currentVoiceChannelId = action.payload;
+    },
+    setJoiningVoiceChannelId: (
+      state,
+      action: PayloadAction<number | undefined>
+    ) => {
+      state.joiningVoiceChannelId = action.payload;
     },
     setVoiceMoveTargetChannelId: (
       state,
@@ -795,6 +813,14 @@ export const serverSlice = createSlice({
       const channel = state.voiceMap[channelId];
 
       channel.users[userId] = userState;
+
+      // in the same update, so the placeholder and our own card never show side by side
+      if (
+        userId === state.ownUserId &&
+        channelId === state.joiningVoiceChannelId
+      ) {
+        state.joiningVoiceChannelId = undefined;
+      }
 
       // a server without call times sends neither
       if (joinedAt !== undefined) {
@@ -986,7 +1012,13 @@ export const serverSlice = createSlice({
       if (action.payload) {
         state.selectedChannelId = undefined;
         state.dmsOpen = false;
+        state.mobileContentClosing = false;
       }
+    },
+    // on a phone the list slides back over the open conversation before it closes, and the
+    // list is what shows while it does (isMobileContentOpenSelector)
+    setMobileContentClosing: (state, action: PayloadAction<boolean>) => {
+      state.mobileContentClosing = action.payload;
     },
 
     // OTHERS ------------------------------------------------------------
@@ -1025,6 +1057,12 @@ export const serverSlice = createSlice({
       state.dmsOpen = action.payload;
 
       if (action.payload) {
+        // the channel open before the DMs, which leaving them goes back to (setDmsOpen in
+        // actions.ts)
+        if (state.selectedChannelId !== undefined) {
+          state.lastServerChannelId = state.selectedChannelId;
+        }
+
         state.selectedChannelId = undefined;
         state.activeFullscreenPluginId = undefined;
         state.threadsOpen = false;

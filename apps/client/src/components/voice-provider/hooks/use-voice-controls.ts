@@ -31,7 +31,8 @@ type TUseVoiceControlsParams = {
   startWebcamStream: () => Promise<void>;
   stopWebcamStream: () => void;
 
-  startScreenShareStream: () => Promise<MediaStreamTrack>;
+  acquireScreenShareStream: () => Promise<MediaStream>;
+  publishScreenShareStream: (stream: MediaStream) => Promise<MediaStreamTrack>;
   stopScreenShareStream: () => void;
 };
 
@@ -40,7 +41,8 @@ const useVoiceControls = ({
   localAudioStream,
   startWebcamStream,
   stopWebcamStream,
-  startScreenShareStream,
+  acquireScreenShareStream,
+  publishScreenShareStream,
   stopScreenShareStream
 }: TUseVoiceControlsParams) => {
   const { t } = useTranslation('common');
@@ -280,9 +282,11 @@ const useVoiceControls = ({
 
     try {
       if (newState) {
-        const video = await startScreenShareStream();
+        const stream = await acquireScreenShareStream();
 
         playSound(SoundType.OWN_USER_STARTED_SCREENSHARE);
+
+        const video = await publishScreenShareStream(stream);
 
         // handle native screen share end
         video.onended = async () => {
@@ -297,13 +301,17 @@ const useVoiceControls = ({
             // ignore
           }
         };
+
+        // your own card already shows from the local stream, so the call is only told once
+        // the producers exist. any earlier, a share the server refuses to produce would ring
+        // the start and stop sounds for everyone, and viewers would get an empty tile until
+        // the video arrived
+        await trpc.voice.updateState.mutate({ sharingScreen: true });
       } else {
         stopScreenShareStream();
-      }
 
-      await trpc.voice.updateState.mutate({
-        sharingScreen: newState
-      });
+        await trpc.voice.updateState.mutate({ sharingScreen: false });
+      }
     } catch (error) {
       updateOwnVoiceState({ sharingScreen: false });
 
@@ -331,7 +339,8 @@ const useVoiceControls = ({
   }, [
     t,
     ownVoiceState.sharingScreen,
-    startScreenShareStream,
+    acquireScreenShareStream,
+    publishScreenShareStream,
     stopScreenShareStream
   ]);
 

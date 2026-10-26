@@ -1,9 +1,15 @@
+import { TestId } from '@sharkord/shared';
 import { Skeleton } from '@sharkord/ui';
 import { memo } from 'react';
 
+// sits in the message list and fills it from the bottom up, where the newest messages land,
+// so the rows are replaced in place instead of the list jumping once the page arrives
 const TextSkeleton = memo(() => {
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div
+      data-testid={TestId.MESSAGES_SKELETON}
+      className="flex h-full flex-col justify-end gap-4 overflow-hidden px-2"
+    >
       <div className="flex gap-3">
         <Skeleton className="h-10 w-10 rounded-full shrink-0" />
         <div className="flex flex-col gap-2 flex-1">

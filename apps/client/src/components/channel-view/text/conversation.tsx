@@ -17,7 +17,7 @@ import {
   TestId,
   type TJoinedMessage
 } from '@sharkord/shared';
-import { Spinner } from '@sharkord/ui';
+import { Button, Spinner } from '@sharkord/ui';
 import { ArrowDown } from 'lucide-react';
 import {
   memo,
@@ -65,8 +65,11 @@ const Conversation = memo(
       messages,
       hasMore,
       loadMore,
+      loadFailed,
+      retryLoad,
       loading,
-      fetching,
+      refreshing,
+      fetchingOlder,
       isEmpty,
       groupedMessages,
       scrollToMessage,
@@ -115,11 +118,13 @@ const Conversation = memo(
       onScroll,
       onAsyncContentLoaded,
       scrollToBottom,
-      isAtBottom
+      isAtBottom,
+      loadOlderKeepingPosition
     } = useScrollController({
       messages,
-      fetching,
-      hasMore,
+      fetching: refreshing || fetchingOlder,
+      // after a failure scrolling asks for nothing, the retry at the top of the list does
+      hasMore: hasMore && !loadFailed,
       loadMore,
       hasTypingUsers: typingUsers.length > 0
     });
@@ -217,6 +222,10 @@ const Conversation = memo(
       returnToPresent();
     }, [returnToPresent]);
 
+    const handleRetryLoad = useCallback(() => {
+      loadOlderKeepingPosition(retryLoad);
+    }, [loadOlderKeepingPosition, retryLoad]);
+
     const handleCancelReply = useCallback(
       () => setReplyingToMessage(undefined),
       [setReplyingToMessage]
@@ -226,32 +235,29 @@ const Conversation = memo(
       return <TextNoAccess />;
     }
 
-    if (loading) {
-      return <TextSkeleton />;
-    }
+    // the header and the composer never wait for the history, so only the message area changes
+    // when it arrives
+    let messagesContent: ReactNode = <TextSkeleton />;
 
-    return (
-      <>
-        {fetching && (
-          <div className="absolute top-0 left-0 right-0 h-12 z-10 flex items-center justify-center">
-            <div className="flex items-center gap-2 bg-background/80 backdrop-blur-sm border border-border rounded-full px-4 py-2 shadow-lg">
-              <Spinner size="xs" />
-              <span className="text-sm text-muted-foreground">
-                Fetching older messages...
-              </span>
+    if (!loading) {
+      messagesContent = (
+        <>
+          {loadFailed && (
+            <div
+              data-testid={TestId.MESSAGES_LOAD_FAILED}
+              className="mb-4 flex items-center justify-center gap-3 text-sm text-muted-foreground"
+            >
+              <span>{t('failedLoadMessages')}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetryLoad}
+                disabled={refreshing || fetchingOlder}
+              >
+                {t('retry')}
+              </Button>
             </div>
-          </div>
-        )}
-
-        {renderHeader(scrollToMessage)}
-
-        <div
-          ref={containerRef}
-          onScroll={onScroll}
-          onLoadCapture={onAsyncContentLoaded}
-          data-messages-container={conversationKey}
-          className="flex-1 overflow-y-auto overflow-x-hidden px-2 pt-2 pb-7 animate-in fade-in duration-500"
-        >
+          )}
           {isEmpty && emptyState}
           <div className="space-y-4">
             {groupedMessages.map((group) => (
@@ -265,6 +271,38 @@ const Conversation = memo(
                 onEditComplete={handleEditComplete}
               />
             ))}
+          </div>
+        </>
+      );
+    }
+
+    return (
+      <>
+        {renderHeader(scrollToMessage)}
+
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          {fetchingOlder && (
+            <div
+              data-testid={TestId.MESSAGES_FETCHING_OLDER}
+              className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center"
+            >
+              <div className="flex items-center gap-2 bg-background/80 backdrop-blur-sm border border-border rounded-full px-4 py-2 shadow-lg">
+                <Spinner size="xs" />
+                <span className="text-sm text-muted-foreground">
+                  {t('fetchingOlderMessages')}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div
+            ref={containerRef}
+            onScroll={onScroll}
+            onLoadCapture={onAsyncContentLoaded}
+            data-messages-container={conversationKey}
+            className="flex-1 overflow-y-auto overflow-x-hidden px-2 pt-2 pb-7"
+          >
+            {messagesContent}
           </div>
         </div>
 

@@ -1,43 +1,36 @@
 import { useOwnVoiceUser } from '@/features/server/hooks';
-import { useEffect, useRef, useState } from 'react';
-
-// speaking intensity level (0 = silent, 1 = quiet, 2 = normal, 3 = loud)
-// this might need to be optimized
-
-enum SpeakingIntensity {
-  Silent = 0,
-  Quiet = 1,
-  Normal = 2,
-  Loud = 3
-}
+import {
+  getAudioLevel,
+  getHeldSpeakingIntensity,
+  getSpeakingIntensity,
+  SPEAKING_EFFECT_CLASSES,
+  SPEAKING_SAMPLE_INTERVAL_MS,
+  SpeakingIntensity
+} from '@/helpers/speaking-intensity';
+import { useEffect, useState } from 'react';
 
 const ANALYZER_FFT_SIZE = 512;
 const ANALYZER_MIN_DECIBELS = -90;
 const ANALYZER_MAX_DECIBELS = -10;
-const ANALYZER_SMOOTHING_TIME_CONSTANT = 0.85;
-const SPEAKING_THRESHOLD = 8;
+// the analyser smooths once per read, not per unit of time. this used to be 0.85 read on every
+// animation frame; at half that rate the same response time needs 0.85 squared
+const ANALYZER_SMOOTHING_TIME_CONSTANT = 0.72;
 
-const SPEAKING_EFFECT_CLASSES: Record<SpeakingIntensity, string> = {
-  [SpeakingIntensity.Silent]: '',
-  [SpeakingIntensity.Quiet]: 'speaking-effect-low',
-  [SpeakingIntensity.Normal]: 'speaking-effect-medium',
-  [SpeakingIntensity.Loud]: 'speaking-effect-high'
-};
-
+// the raw level never reaches react state: the component renders only when the intensity
+// bucket changes, a few times a second while someone talks and never while the call is quiet,
+// instead of once per animation frame for every participant
 const useAudioLevel = (audioStream: MediaStream | undefined) => {
-  const [audioLevel, setAudioLevel] = useState(0);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
+  const [speakingIntensity, setSpeakingIntensity] = useState(
+    SpeakingIntensity.Silent
+  );
   const ownVoiceUser = useOwnVoiceUser();
+  const soundMuted = ownVoiceUser?.state.soundMuted;
 
   useEffect(() => {
-    if (!audioStream || ownVoiceUser?.state.soundMuted) {
-      setAudioLevel(0);
-      setIsSpeaking(false);
-      return;
-    }
+    if (!audioStream || soundMuted) return;
+
+    let audioContext: AudioContext | undefined;
+    let intervalId: number | undefined;
 
     try {
       const AudioContextClass =
@@ -45,7 +38,8 @@ const useAudioLevel = (audioStream: MediaStream | undefined) => {
         (window as typeof window & { webkitAudioContext?: typeof AudioContext })
           .webkitAudioContext;
 
-      const audioContext = new AudioContextClass();
+      audioContext = new AudioContextClass();
+
       const analyser = audioContext.createAnalyser();
       const source = audioContext.createMediaStreamSource(audioStream);
 
@@ -56,63 +50,54 @@ const useAudioLevel = (audioStream: MediaStream | undefined) => {
 
       source.connect(analyser);
 
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
+      const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+      let shown = SpeakingIntensity.Silent;
+      let lastSpokeAt = 0;
 
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const sample = () => {
+        // a page playing call audio keeps its timers at full rate even while hidden, where
+        // nobody can see the ring, so the reads and renders wait until it is shown again
+        if (document.hidden) return;
 
-      const checkAudioLevel = () => {
-        if (!analyserRef.current) return;
+        analyser.getByteFrequencyData(frequencyData);
 
-        analyserRef.current.getByteFrequencyData(dataArray);
+        const now = performance.now();
+        const level = getAudioLevel(frequencyData);
+        const measured = getSpeakingIntensity(level);
 
-        // calculate rms (root mean square) of the frequency data
-        let sum = 0;
-
-        for (let i = 0; i < dataArray.length; i++) {
-          sum += dataArray[i] * dataArray[i];
+        if (measured !== SpeakingIntensity.Silent) {
+          lastSpokeAt = now;
         }
 
-        const rms = Math.sqrt(sum / dataArray.length);
-        const normalizedLevel = Math.min(100, (rms / 255) * 100);
+        const next = getHeldSpeakingIntensity({
+          shown,
+          measured,
+          lastSpokeAt,
+          now
+        });
 
-        setAudioLevel(normalizedLevel);
-        setIsSpeaking(normalizedLevel > SPEAKING_THRESHOLD);
+        if (next === shown) return;
 
-        animationFrameRef.current = requestAnimationFrame(checkAudioLevel);
+        shown = next;
+        setSpeakingIntensity(next);
       };
 
-      checkAudioLevel();
+      intervalId = window.setInterval(sample, SPEAKING_SAMPLE_INTERVAL_MS);
     } catch (error) {
       console.warn('Audio level detection not supported:', error);
     }
 
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-
-      setAudioLevel(0);
-      setIsSpeaking(false);
+      window.clearInterval(intervalId);
+      audioContext?.close();
+      setSpeakingIntensity(SpeakingIntensity.Silent);
     };
-  }, [audioStream, ownVoiceUser?.state.soundMuted]);
+  }, [audioStream, soundMuted]);
 
-  const speakingIntensity = isSpeaking
-    ? audioLevel < 15
-      ? SpeakingIntensity.Quiet
-      : audioLevel < 30
-        ? SpeakingIntensity.Normal
-        : SpeakingIntensity.Loud
-    : SpeakingIntensity.Silent;
-
-  const speakingEffectClass = SPEAKING_EFFECT_CLASSES[speakingIntensity] ?? '';
+  const isSpeaking = speakingIntensity !== SpeakingIntensity.Silent;
+  const speakingEffectClass = SPEAKING_EFFECT_CLASSES[speakingIntensity];
 
   return {
-    audioLevel,
     isSpeaking,
     speakingIntensity,
     speakingEffectClass

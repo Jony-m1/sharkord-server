@@ -223,6 +223,11 @@ export const updateOwnVoiceState = (
   store.dispatch(serverSliceActions.updateOwnVoiceState(newState));
 };
 
+// the server listing us in the call ends it too, see addUserToVoiceChannel in the slice
+const setJoiningVoiceChannelId = (channelId: number | undefined): void => {
+  store.dispatch(serverSliceActions.setJoiningVoiceChannelId(channelId));
+};
+
 export const joinVoice = async (
   channelId: number
 ): Promise<RtpCapabilities | undefined> => {
@@ -233,6 +238,9 @@ export const joinVoice = async (
     // already in the desired channel
     return undefined;
   }
+
+  // set before the leave below, which clears the current call for its whole round trip
+  setJoiningVoiceChannelId(channelId);
 
   if (currentChannelId) {
     // is already in a voice channel, leave it first
@@ -270,6 +278,7 @@ export const joinVoice = async (
   } catch (error) {
     voiceLogger.error('session: join failed', error, { channelId });
     clearLocalVoiceSession();
+    setJoiningVoiceChannelId(undefined);
 
     toast.error(getTrpcError(error, i18n.t('common:failedJoinVoiceChannel')));
   }

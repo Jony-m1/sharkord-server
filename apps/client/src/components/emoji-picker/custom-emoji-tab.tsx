@@ -3,12 +3,12 @@ import type { EmojiItem } from '@tiptap/extension-emoji';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toTEmojiItem } from './emoji-data';
-import { EmojiGrid } from './emoji-grid';
+import { EmojiGrid, type TEmojiSelectHandler } from './emoji-grid';
 import { useRecentEmojis } from './use-recent-emojis';
 
 interface CustomEmojiTabProps {
   customEmojis: EmojiItem[];
-  onEmojiSelect: (emoji: TEmojiItem) => void;
+  onEmojiSelect: TEmojiSelectHandler;
 }
 
 const CustomEmojiTab = memo(
@@ -22,8 +22,8 @@ const CustomEmojiTab = memo(
     );
 
     const handleEmojiSelect = useCallback(
-      (emoji: TEmojiItem) => {
-        onEmojiSelect(emoji);
+      (emoji: TEmojiItem, keepOpen: boolean) => {
+        onEmojiSelect(emoji, keepOpen);
         requestAnimationFrame(() => addRecent(emoji));
       },
       [addRecent, onEmojiSelect]

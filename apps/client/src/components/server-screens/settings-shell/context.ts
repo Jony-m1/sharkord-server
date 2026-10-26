@@ -9,6 +9,7 @@ export type TSettingsFormHandle = {
   isDirty: boolean;
   isSaving: boolean;
   save: () => Promise<void>;
+  discard: () => void;
 };
 
 type TSettingsFormSlot = Dispatch<SetStateAction<TSettingsFormHandle | null>>;

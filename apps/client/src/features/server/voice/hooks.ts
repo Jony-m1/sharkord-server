@@ -17,7 +17,8 @@ import {
   voiceChannelAudioExternalStreamsSelector,
   voiceChannelExternalStreamsListSelector,
   voiceMoveTargetChannelIdSelector,
-  voiceReactionsSelector
+  voiceReactionsSelector,
+  voiceUserStateSelector
 } from './selectors';
 
 export const useCallStartedAt = (channelId: number) =>
@@ -26,6 +27,11 @@ export const useCallStartedAt = (channelId: number) =>
 export const useCallJoinedAt = (channelId: number, userId: number) =>
   useSelector((state: IRootState) =>
     callJoinedAtSelector(state, channelId, userId)
+  );
+
+export const useVoiceUserState = (channelId: number, userId: number) =>
+  useSelector((state: IRootState) =>
+    voiceUserStateSelector(state, channelId, userId)
   );
 
 export const useVoiceChannelExternalStreamsList = (channelId: number) =>

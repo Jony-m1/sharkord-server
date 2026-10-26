@@ -4,24 +4,28 @@ import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { RelativeTime } from '@/components/relative-time';
 import { requestConfirmation } from '@/features/dialogs/actions';
 import { useOwnUserId, useUserById } from '@/features/server/users/hooks';
-import { getFileUrl } from '@/helpers/get-file-url';
 import { getRenderedUsername } from '@/helpers/get-rendered-username';
 import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 import { PluginSlot, type TJoinedMessage } from '@sharkord/shared';
 import { Tooltip } from '@sharkord/ui';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { FileCard } from '../file-card';
 import { MessageReactions } from '../message-reactions';
 import { YoutubeOverride } from '../overrides/youtube';
+import { AttachmentCard } from './attachment-card';
 import {
   getIsEmojiOnly,
   getParsedMessageHtml,
   getYoutubeVideoIds
 } from './content-cache';
-import { extractMessageOpenGraph, isMediaLinksOnly } from './helpers';
+import {
+  extractMessageOpenGraph,
+  getAttachmentFiles,
+  getShownMedia,
+  isMediaLinksOnly
+} from './helpers';
 import { Media } from './media';
 import { extractMessageMedia } from './media-cache';
 import { MessageRenderFallback } from './message-render-fallback';
@@ -87,20 +91,50 @@ const MessageRenderer = memo(
 
     const allMedia = useMemo(() => extractMessageMedia(message), [message]);
 
+    const [failedMediaUrls, setFailedMediaUrls] = useState<ReadonlySet<string>>(
+      () => new Set()
+    );
+
+    const onMediaError = useCallback((url: string) => {
+      setFailedMediaUrls((previous) => {
+        if (previous.has(url)) return previous;
+
+        const next = new Set(previous);
+
+        next.add(url);
+
+        return next;
+      });
+    }, []);
+
+    const shownMedia = useMemo(
+      () => getShownMedia(allMedia, failedMediaUrls),
+      [allMedia, failedMediaUrls]
+    );
+
     const youtubeVideoIds = useMemo(
       () => getYoutubeVideoIds(message),
       [message]
     );
 
     const mediaLinksOnly = useMemo(
-      () => isMediaLinksOnly(message.content ?? '', allMedia),
-      [message.content, allMedia]
+      () => isMediaLinksOnly(message.content ?? '', shownMedia),
+      [message.content, shownMedia]
     );
 
     const openGraphPreviews = useMemo(
       () => extractMessageOpenGraph(message, allMedia),
       [message, allMedia]
     );
+
+    const attachmentFiles = useMemo(
+      () => getAttachmentFiles(message.files, shownMedia),
+      [message.files, shownMedia]
+    );
+
+    // a copy of the message shown elsewhere (pinned messages) leaves its files alone
+    const onRemoveFile =
+      isOwnMessage && !disableFiles ? onRemoveFileClick : undefined;
 
     return (
       <div className="flex flex-col gap-1">
@@ -158,7 +192,11 @@ const MessageRenderer = memo(
         {youtubeVideoIds.map((videoId) => (
           <YoutubeOverride key={videoId} videoId={videoId} />
         ))}
-        <Media media={allMedia} />
+        <Media
+          media={shownMedia}
+          onRemoveFile={onRemoveFile}
+          onMediaError={onMediaError}
+        />
         <OpenGraph previews={openGraphPreviews} />
 
         {!disableReactions && (
@@ -173,18 +211,13 @@ const MessageRenderer = memo(
           props={pluginProps}
         />
 
-        {message.files.length > 0 && !disableFiles && (
+        {attachmentFiles.length > 0 && !disableFiles && (
           <div className="flex gap-1 flex-wrap">
-            {message.files.map((file) => (
-              <FileCard
+            {attachmentFiles.map((file) => (
+              <AttachmentCard
                 key={file.id}
-                name={file.originalName}
-                extension={file.extension}
-                size={file.size}
-                onRemove={
-                  isOwnMessage ? () => onRemoveFileClick(file.id) : undefined
-                }
-                href={getFileUrl(file)}
+                file={file}
+                onRemoveFile={onRemoveFile}
               />
             ))}
           </div>
