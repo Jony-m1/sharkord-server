@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { tdb } from '../../__tests__/setup';
 import { getOrphanedFileIds, getStorageUsageByPlugin } from '../queries/files';
-import { files, pluginData } from '../schema';
+import { files, pluginData, settings } from '../schema';
 
 const ORPHAN_GRACE_MS = 15 * 60 * 1000;
 
@@ -50,6 +50,16 @@ describe('getOrphanedFileIds', () => {
     });
 
     expect(await getOrphanedFileIds()).toEqual([]);
+  });
+
+  test('should keep the server logo and banner', async () => {
+    await insertOrphans(3);
+
+    const [logo, banner, orphan] = await getOrphanedFileIds();
+
+    await tdb.update(settings).set({ logoId: logo, bannerId: banner });
+
+    expect(await getOrphanedFileIds()).toEqual([orphan!]);
   });
 });
 

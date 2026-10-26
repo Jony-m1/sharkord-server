@@ -52,6 +52,15 @@ test('a banner set in server settings shows at the top of everyone’s channel l
 
       await expect(banner).toBeVisible();
       await expect(banner).toHaveAttribute('src', /\/public\//);
+      // a broken image is still a visible element, so check the picture itself arrived
+      await expect
+        .poll(() =>
+          banner.evaluate(
+            (element) =>
+              (element as unknown as { naturalWidth: number }).naturalWidth
+          )
+        )
+        .toBeGreaterThan(0);
 
       // taken off again so the rest of the suite sees the seeded server; with no logo set, the
       // banner's is the only image there is to remove

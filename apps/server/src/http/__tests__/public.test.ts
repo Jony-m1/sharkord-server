@@ -962,8 +962,13 @@ describe('/public', () => {
   });
 
   test('should serve the server banner without a token when signed URLs are enabled', async () => {
-    const file = filesToCreate[0];
-    const dbFile = await getFileByMessageId(file!.messageId!);
+    // the third fixture is on no message, so only the banner keeps it from counting as an
+    // orphan, which is how a real banner is stored
+    const dbFile = await tdb
+      .select()
+      .from(files)
+      .where(eq(files.originalName, 'orphan.txt'))
+      .get();
 
     await tdb.update(settings).set({ bannerId: dbFile!.id });
     await enableSignedUrls();
@@ -973,6 +978,7 @@ describe('/public', () => {
     );
 
     expect(response.status).toBe(200);
+    expect(await response.text()).toBe(filesToCreate[2]!.content);
 
     await disableSignedUrls();
     await tdb.update(settings).set({ bannerId: null });
