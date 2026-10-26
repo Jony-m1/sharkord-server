@@ -1,5 +1,6 @@
 import type { TJoinedSettings, TPublicServerSettings } from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/sqlite-core';
 import { db } from '..';
 import { config } from '../../config';
 import { files, settings } from '../schema';
@@ -7,11 +8,15 @@ import { files, settings } from '../schema';
 // since this is static, we can keep it in memory to avoid querying the DB every time
 let token: string;
 
+// the logo and the banner are both rows of files, so one join needs a name of its own
+const bannerFiles = alias(files, 'banner_files');
+
 const getSettings = async (): Promise<TJoinedSettings> => {
   const row = await db
-    .select({ settings, logo: files })
+    .select({ settings, logo: files, banner: bannerFiles })
     .from(settings)
     .leftJoin(files, eq(files.id, settings.logoId))
+    .leftJoin(bannerFiles, eq(bannerFiles.id, settings.bannerId))
     .get();
 
   if (!row) {
@@ -26,7 +31,8 @@ const getSettings = async (): Promise<TJoinedSettings> => {
 
   return {
     ...row.settings,
-    logo: row.logo ?? null
+    logo: row.logo ?? null,
+    banner: row.banner ?? null
   };
 };
 
@@ -53,7 +59,8 @@ const getPublicSettings: () => Promise<TPublicServerSettings> = async () => {
     webRtcMaxBitrate: config.webRtc.maxBitrate,
     enableSearch: settings.enableSearch,
     showWelcomeDialog: settings.showWelcomeDialog,
-    storageSignedUrlsEnabled: settings.storageSignedUrlsEnabled
+    storageSignedUrlsEnabled: settings.storageSignedUrlsEnabled,
+    banner: settings.banner
   };
 
   return publicSettings;

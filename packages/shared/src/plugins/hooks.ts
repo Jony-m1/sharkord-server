@@ -23,7 +23,8 @@ export enum FileSaveType {
   AVATAR = 'avatar',
   BANNER = 'banner',
   EMOJI = 'emoji',
-  SERVER_LOGO = 'server_logo'
+  SERVER_LOGO = 'server_logo',
+  SERVER_BANNER = 'server_banner'
 }
 
 export type TBeforeFileSavePayload = {

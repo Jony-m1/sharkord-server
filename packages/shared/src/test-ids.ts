@@ -18,6 +18,7 @@ export enum TestId {
 
   LEFT_SIDEBAR = 'left-sidebar',
   LEFT_SIDEBAR_SERVER_NAME = 'left-sidebar-server-name',
+  SERVER_BANNER = 'server-banner',
   MOBILE_BACK_BUTTON = 'mobile-back-button',
   PENDING_UPLOAD = 'pending-upload',
   PENDING_UPLOAD_CANCEL = 'pending-upload-cancel',

@@ -473,6 +473,8 @@
   "helperValuesTitle": "Pomocné hodnoty",
   "logoDesc": "Doporučujeme čtvercový obrázek. Pokud obrázek není přesně čtvercový, ikony PWA se vrátí k výchozí ikoně Sharkord.",
   "logoLabel": "Logo",
+  "serverBannerDesc": "Zobrazuje se v horní části seznamu kanálů s názvem serveru přes něj, jako na Discordu. Nejlépe funguje široký obrázek, přibližně 960 × 540.",
+  "serverBannerLabel": "Banner",
   "logsDesc": "Živý výstup tohoto pluginu",
   "logsTitle": "Logy",
   "notificationsUpdated": "Nastavení oznámení aktualizováno",

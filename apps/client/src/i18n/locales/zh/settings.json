@@ -473,6 +473,8 @@
   "helperValuesTitle": "辅助值",
   "logoDesc": "建议使用正方形图片。如果图片不是完美的正方形，PWA 图标将回退为默认的 Sharkord 图标。",
   "logoLabel": "标志",
+  "serverBannerDesc": "显示在频道列表顶部，服务器名称叠加在上面，就像 Discord 一样。宽图片效果最佳，约 960 × 540。",
+  "serverBannerLabel": "横幅",
   "logsDesc": "该插件的实时输出",
   "logsTitle": "日志",
   "notificationsUpdated": "通知设置已更新",

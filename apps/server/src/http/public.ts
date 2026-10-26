@@ -59,11 +59,14 @@ const publicRouteHandler = async (
     return;
   }
 
-  const { storageSignedUrlsEnabled, logoId } = await getSettings();
-  const isSignedUrlProtected = storageSignedUrlsEnabled && dbFile.id !== logoId;
+  const { storageSignedUrlsEnabled, logoId, bannerId } = await getSettings();
+  const isSignedUrlProtected =
+    storageSignedUrlsEnabled && dbFile.id !== logoId && dbFile.id !== bannerId;
   let tokenExpiresAt: number | null = null;
 
-  // server logo is the only exception to signed URLs
+  // the server's logo and banner are the exceptions to signed URLs: the logo shows before
+  // anyone signs in, and the banner is sent once with the settings, so a signed link to it
+  // would expire under a client that stays connected
   if (isSignedUrlProtected) {
     const accessTokenParam = url.searchParams.get('accessToken');
     const expiresParam = url.searchParams.get('expires');

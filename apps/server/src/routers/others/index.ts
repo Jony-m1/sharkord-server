@@ -1,4 +1,5 @@
 import { t } from '../../utils/trpc';
+import { changeBannerRoute } from './change-banner';
 import { changeLogoRoute } from './change-logo';
 import { onServerSettingsUpdateRoute } from './events';
 import { getSettingsRoute } from './get-settings';
@@ -14,6 +15,7 @@ export const othersRouter = t.router({
   joinServer: joinServerRoute,
   handshake: handshakeRoute,
   updateSettings: updateSettingsRoute,
+  changeBanner: changeBannerRoute,
   changeLogo: changeLogoRoute,
   getSettings: getSettingsRoute,
   onServerSettingsUpdate: onServerSettingsUpdateRoute,

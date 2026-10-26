@@ -473,6 +473,8 @@
   "helperValuesTitle": "Valeurs utiles",
   "logoDesc": "Une image carrée est recommandée. Si votre image n'est pas parfaitement carrée, les icônes PWA utiliseront l'icône Sharkord par défaut.",
   "logoLabel": "Logo",
+  "serverBannerDesc": "Affichée en haut de la liste des salons avec le nom du serveur par-dessus, comme sur Discord. Une image large convient le mieux, environ 960 × 540.",
+  "serverBannerLabel": "Bannière",
   "logsDesc": "Sortie en direct de ce plugin",
   "logsTitle": "Journaux",
   "notificationsUpdated": "Paramètres de notification mis à jour",

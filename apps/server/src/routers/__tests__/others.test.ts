@@ -1,10 +1,11 @@
 import {
   ActivityLogType,
   Permission,
+  ServerEvents,
   STORAGE_MAX_FILES_PER_MESSAGE,
   type TTempFile
 } from '@sharkord/shared';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import {
   getCaller,
@@ -15,9 +16,10 @@ import {
 import { TEST_SECRET_TOKEN } from '../../__tests__/seed';
 import { tdb } from '../../__tests__/setup';
 import { getSettings } from '../../db/queries/server';
-import { activityLog, rolePermissions } from '../../db/schema';
+import { activityLog, files, rolePermissions, settings } from '../../db/schema';
 import { pluginManager } from '../../plugins';
 import { drainLoginsQueue } from '../../queues/logins';
+import { pubsub } from '../../utils/pubsub';
 
 describe('others router', () => {
   test('should throw when user tries to join with no handshake', async () => {
@@ -550,6 +552,129 @@ describe('others router', () => {
     const after = await caller.others.getSettings();
 
     expect(after.logo?.originalName).toBe('keep-me.png');
+  });
+
+  test('should change the banner and show it to everyone', async () => {
+    const { caller, mockedToken: token } = await initTest(1);
+    const publish = spyOn(pubsub, 'publish');
+
+    const bannerFile = new File(['banner content'], 'banner.png', {
+      type: 'image/png'
+    });
+    const uploadResponse = await uploadFile(bannerFile, token);
+    const tempFile = (await uploadResponse.json()) as TTempFile;
+
+    expect((await caller.others.getSettings()).banner).toBeNull();
+
+    await caller.others.changeBanner({ fileId: tempFile.id });
+
+    const after = await caller.others.getSettings();
+
+    expect(after.banner?.originalName).toBe('banner.png');
+
+    // the logo is a separate image and stays as it was
+    expect(after.logo).toBeNull();
+
+    // everyone connected gets it with the public settings, so it changes without a reload
+    expect(publish).toHaveBeenCalledWith(
+      ServerEvents.SERVER_SETTINGS_UPDATE,
+      expect.objectContaining({
+        banner: expect.objectContaining({ originalName: 'banner.png' })
+      })
+    );
+  });
+
+  test('should remove the banner and its file', async () => {
+    const { caller, mockedToken: token } = await initTest(1);
+
+    const bannerFile = new File(['banner'], 'gone.png', { type: 'image/png' });
+    const uploadResponse = await uploadFile(bannerFile, token);
+    const tempFile = (await uploadResponse.json()) as TTempFile;
+
+    await caller.others.changeBanner({ fileId: tempFile.id });
+
+    const { bannerId } = await getSettings();
+
+    await caller.others.changeBanner({});
+
+    expect((await caller.others.getSettings()).banner).toBeNull();
+
+    const file = await tdb
+      .select()
+      .from(files)
+      .where(eq(files.id, bannerId!))
+      .get();
+
+    expect(file).toBeUndefined();
+  });
+
+  test('should not let a user without MANAGE_SETTINGS change the banner', async () => {
+    const { caller: user } = await initTest(2);
+
+    await expect(user.others.changeBanner({})).rejects.toThrow(
+      'Insufficient permissions'
+    );
+  });
+
+  test('should refuse a banner that is not an image', async () => {
+    const { caller, mockedToken: token } = await initTest(1);
+
+    const textFile = new File(['not a picture'], 'notes.txt', {
+      type: 'text/plain'
+    });
+    const uploadResponse = await uploadFile(textFile, token);
+    const tempFile = (await uploadResponse.json()) as TTempFile;
+
+    await expect(
+      caller.others.changeBanner({ fileId: tempFile.id })
+    ).rejects.toThrow('Invalid file type. Please try again.');
+
+    expect((await caller.others.getSettings()).banner).toBeNull();
+  });
+
+  test('should keep the existing banner when a replacement cannot be saved', async () => {
+    const { caller, mockedToken: token } = await initTest(1);
+
+    const bannerFile = new File(['a banner'], 'keep.png', {
+      type: 'image/png'
+    });
+    const uploadResponse = await uploadFile(bannerFile, token);
+    const tempFile = (await uploadResponse.json()) as TTempFile;
+
+    await caller.others.changeBanner({ fileId: tempFile.id });
+
+    await expect(
+      caller.others.changeBanner({ fileId: 'does-not-exist' })
+    ).rejects.toThrow();
+
+    expect((await caller.others.getSettings()).banner?.originalName).toBe(
+      'keep.png'
+    );
+  });
+
+  // the column references the file with on delete set null, which drizzle leaves out when it
+  // adds a column, so the migration spells it out
+  test('should clear the banner when its file is deleted', async () => {
+    const { caller, mockedToken: token } = await initTest(1);
+
+    const bannerFile = new File(['banner'], 'deleted.png', {
+      type: 'image/png'
+    });
+    const uploadResponse = await uploadFile(bannerFile, token);
+    const tempFile = (await uploadResponse.json()) as TTempFile;
+
+    await caller.others.changeBanner({ fileId: tempFile.id });
+
+    const { bannerId } = await getSettings();
+
+    await tdb.delete(files).where(eq(files.id, bannerId!));
+
+    const row = await tdb
+      .select({ bannerId: settings.bannerId })
+      .from(settings)
+      .get();
+
+    expect(row?.bannerId).toBeNull();
   });
 
   test('should rate limit excessive join attempts', async () => {

@@ -961,6 +961,23 @@ describe('/public', () => {
     await disableSignedUrls();
   });
 
+  test('should serve the server banner without a token when signed URLs are enabled', async () => {
+    const file = filesToCreate[0];
+    const dbFile = await getFileByMessageId(file!.messageId!);
+
+    await tdb.update(settings).set({ bannerId: dbFile!.id });
+    await enableSignedUrls();
+
+    const response = await fetch(
+      `${testsBaseUrl}/public/${encodeURIComponent(dbFile!.name)}`
+    );
+
+    expect(response.status).toBe(200);
+
+    await disableSignedUrls();
+    await tdb.update(settings).set({ bannerId: null });
+  });
+
   test('should return 403 when signed URLs enabled and only accessToken provided without expires', async () => {
     const file = filesToCreate[0];
     const dbFile = await getFileByMessageId(file!.messageId!);

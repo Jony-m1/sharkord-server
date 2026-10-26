@@ -22,6 +22,7 @@ type TServerGeneralValues = {
   showWelcomeDialog: boolean;
   // undefined means untouched, null means remove
   logo?: TPickedImage | null;
+  banner?: TPickedImage | null;
 };
 
 const INITIAL_VALUES: TServerGeneralValues = {
@@ -60,6 +61,10 @@ const General = memo(() => {
     if (values.logo !== undefined) {
       await trpc.others.changeLogo.mutate({ fileId: values.logo?.fileId });
     }
+
+    if (values.banner !== undefined) {
+      await trpc.others.changeBanner.mutate({ fileId: values.banner?.fileId });
+    }
   }, []);
 
   const { r, values, onChange, reset } = useSettingsForm<TServerGeneralValues>({
@@ -89,6 +94,10 @@ const General = memo(() => {
 
   const handleLogoChange = useCallback(
     (picked: TPickedImage | null) => onChange('logo', picked),
+    [onChange]
+  );
+  const handleBannerChange = useCallback(
+    (picked: TPickedImage | null) => onChange('banner', picked),
     [onChange]
   );
   const handlePasswordOnFirstJoinChange = useCallback(
@@ -165,6 +174,15 @@ const General = memo(() => {
         currentUrl={getFileUrl(settings?.logo)}
         draft={values.logo}
         onChange={handleLogoChange}
+      />
+
+      <ImagePicker
+        label={t('serverBannerLabel')}
+        description={t('serverBannerDesc')}
+        className="h-36 w-80 object-cover"
+        currentUrl={getFileUrl(settings?.banner)}
+        draft={values.banner}
+        onChange={handleBannerChange}
       />
 
       <Group

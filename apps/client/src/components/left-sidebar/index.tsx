@@ -6,6 +6,7 @@ import {
   useServerName
 } from '@/features/server/hooks';
 import { useThreadsOpen } from '@/features/server/threads/hooks';
+import { getFileUrl } from '@/helpers/get-file-url';
 import { LocalStorageKey } from '@/helpers/storage';
 import { cn } from '@/lib/utils';
 import { TestId } from '@sharkord/shared';
@@ -34,6 +35,8 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
   const dmsOpen = useDmsOpen();
   const threadsOpen = useThreadsOpen();
   const publicSettings = usePublicServerSettings();
+  // across the top with the name over it, as on Discord
+  const bannerUrl = getFileUrl(publicSettings?.banner);
 
   useRestoreLastSelectedChannel();
   useFollowVoiceMove();
@@ -56,15 +59,34 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
       className={cn('h-full', className)}
       data-testid={TestId.LEFT_SIDEBAR}
     >
-      <div className="flex w-full justify-between h-12 items-center border-b border-border px-4">
+      <div
+        className={cn(
+          'relative flex w-full shrink-0 justify-between border-b border-border px-4',
+          bannerUrl ? 'h-36 items-start pt-2.5' : 'h-12 items-center'
+        )}
+      >
+        {bannerUrl && (
+          <>
+            <img
+              src={bannerUrl}
+              alt=""
+              data-testid={TestId.SERVER_BANNER}
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/70 via-black/15 to-transparent" />
+          </>
+        )}
         <h2
-          className="font-semibold text-foreground truncate cursor-pointer"
+          className={cn(
+            'relative font-semibold text-foreground truncate cursor-pointer',
+            bannerUrl && 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]'
+          )}
           onClick={() => setSelectedChannelId(undefined)}
           data-testid={TestId.LEFT_SIDEBAR_SERVER_NAME}
         >
           {serverName}
         </h2>
-        <div>
+        <div className="relative">
           <ServerDropdownMenu />
         </div>
       </div>

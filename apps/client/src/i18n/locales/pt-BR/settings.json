@@ -475,6 +475,8 @@
   "helperValuesTitle": "Valores auxiliares",
   "logoDesc": "Uma imagem quadrada é recomendada. Se sua imagem não for perfeitamente quadrada, os ícones do PWA cairão para o ícone padrão do Sharkord.",
   "logoLabel": "Logotipo",
+  "serverBannerDesc": "Exibido no topo da lista de canais com o nome do servidor por cima, como no Discord. Uma imagem larga funciona melhor, cerca de 960 × 540.",
+  "serverBannerLabel": "Banner",
   "logsDesc": "Saída ao vivo deste plugin",
   "logsTitle": "Logs",
   "notificationsUpdated": "Configurações de notificação atualizadas",

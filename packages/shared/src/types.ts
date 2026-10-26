@@ -71,6 +71,8 @@ export type TPublicServerSettings = Pick<
   | 'storageSignedUrlsEnabled'
 > & {
   webRtcMaxBitrate: number;
+  // across the top of the channel list, so everyone sees it change straight away
+  banner: TFile | null;
 };
 
 export type TMessageMediaMetadata = {
