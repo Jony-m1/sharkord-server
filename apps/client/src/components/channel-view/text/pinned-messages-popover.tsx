@@ -1,8 +1,9 @@
 import { RelativeTime } from '@/components/relative-time';
-import { useSelectedChannelId } from '@/features/server/channels/hooks';
+import { setMessageJumpTarget } from '@/features/app/actions';
+import { useChannelById } from '@/features/server/channels/hooks';
 import { useUserById } from '@/features/server/users/hooks';
 import { getTRPCClient } from '@/lib/trpc';
-import { getTrpcError, type TJoinedMessage } from '@sharkord/shared';
+import { getTrpcError, TestId, type TJoinedMessage } from '@sharkord/shared';
 import {
   IconButton,
   Popover,
@@ -47,7 +48,10 @@ const PinnedMessageGroupWrapper = memo(
     const pinnedDate = message.pinnedAt ? new Date(message.pinnedAt) : null;
 
     return (
-      <div className="rounded-lg border border-border/70 bg-card/60 p-2">
+      <div
+        className="rounded-lg border border-border/70 bg-card/60 p-2"
+        data-testid={TestId.PINNED_MESSAGE}
+      >
         <div className="mb-2 flex items-center justify-between rounded-md border border-border/50 bg-secondary/35 px-3 py-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Pin className="h-3.5 w-3.5 text-primary/80" />
@@ -92,31 +96,40 @@ const PinnedMessageGroupWrapper = memo(
 );
 
 type TPinnedMessagesPopoverProps = {
-  onScrollToMessage: (messageId: number) => Promise<void>;
+  channelId: number;
 };
 
+// the pins of the channel it is given, never the selected one: a direct message and a call's
+// chat are not the selected channel
 const PinnedMessagesPopover = memo(
-  ({ onScrollToMessage }: TPinnedMessagesPopoverProps) => {
+  ({ channelId }: TPinnedMessagesPopoverProps) => {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [pinnedMessages, setPinnedMessages] = useState<TJoinedMessage[]>([]);
     const [loading, setLoading] = useState(false);
-    const selectedChannelId = useSelectedChannelId();
+    const channel = useChannelById(channelId);
+    const isDm = !!channel?.isDm;
 
     const togglePinnedMessages = useCallback(() => {
       setIsOpen((prev) => !prev);
     }, []);
 
+    // the conversation showing this channel scrolls to it, wherever it is on screen
     const handleScrollToMessage = useCallback(
       (messageId: number) => {
         setIsOpen(false);
-        onScrollToMessage(messageId);
+        setMessageJumpTarget({
+          channelId,
+          messageId,
+          isDm,
+          highlightTime: 4000
+        });
       },
-      [onScrollToMessage]
+      [channelId, isDm]
     );
 
     useEffect(() => {
-      if (!isOpen || !selectedChannelId) return;
+      if (!isOpen) return;
 
       let isCancelled = false;
 
@@ -127,7 +140,7 @@ const PinnedMessagesPopover = memo(
 
         try {
           const messages = await trpc.messages.getPinned.query({
-            channelId: selectedChannelId
+            channelId
           });
 
           if (!isCancelled) {
@@ -149,7 +162,7 @@ const PinnedMessagesPopover = memo(
       return () => {
         isCancelled = true;
       };
-    }, [isOpen, selectedChannelId, t]);
+    }, [isOpen, channelId, t]);
 
     return (
       <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -159,6 +172,7 @@ const PinnedMessagesPopover = memo(
             size="sm"
             variant="ghost"
             onClick={togglePinnedMessages}
+            data-testid={TestId.PINNED_MESSAGES_BUTTON}
           />
         </PopoverTrigger>
         <PopoverContent

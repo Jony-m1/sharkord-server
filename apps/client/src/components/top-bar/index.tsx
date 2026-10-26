@@ -1,6 +1,8 @@
+import { ChannelHeaderActions } from '@/components/channel-view/text/channel-header-actions';
 import {
   useCurrentVoiceChannelId,
-  useIsCurrentVoiceChannelSelected
+  useIsCurrentVoiceChannelSelected,
+  useVisibleVoiceChatChannelId
 } from '@/features/server/channels/hooks';
 import { usePublicServerSettings } from '@/features/server/hooks';
 import { PluginSlot } from '@sharkord/shared';
@@ -11,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { PluginSlotRenderer } from '../plugin-slot-renderer';
 import { ServerSearch } from './server-search';
 import { VoiceButtons } from './voice-buttons';
+import { VoiceChatTopic } from './voice-chat-topic';
 
 type TTopBarProps = {
   onToggleRightSidebar: () => void;
@@ -21,11 +24,16 @@ const TopBar = memo(({ onToggleRightSidebar, isOpen }: TTopBarProps) => {
   const { t } = useTranslation('topbar');
   const isCurrentVoiceChannelSelected = useIsCurrentVoiceChannelSelected();
   const currentVoiceChannelId = useCurrentVoiceChannelId();
+  const visibleVoiceChatChannelId = useVisibleVoiceChatChannelId();
   const settings = usePublicServerSettings();
 
   return (
     <div className="hidden lg:grid h-12 w-full grid-cols-[1fr_minmax(320px,1.4fr)_1fr] items-center border-b border-border bg-card px-4 transition-all duration-300 ease-in-out gap-2">
-      <div className="flex min-w-0 items-center gap-2" />
+      <div className="flex min-w-0 items-center gap-2">
+        {visibleVoiceChatChannelId && (
+          <VoiceChatTopic channelId={visibleVoiceChatChannelId} />
+        )}
+      </div>
 
       <div className="flex items-center justify-center">
         {settings?.enableSearch && <ServerSearch />}
@@ -33,6 +41,9 @@ const TopBar = memo(({ onToggleRightSidebar, isOpen }: TTopBarProps) => {
 
       <div className="flex min-w-0 items-center justify-end gap-2">
         <PluginSlotRenderer slotId={PluginSlot.TOPBAR_RIGHT} />
+        {visibleVoiceChatChannelId && (
+          <ChannelHeaderActions channelId={visibleVoiceChatChannelId} />
+        )}
         {isCurrentVoiceChannelSelected && currentVoiceChannelId && (
           <VoiceButtons currentVoiceChannelId={currentVoiceChannelId} />
         )}

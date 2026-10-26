@@ -25,7 +25,7 @@ import {
   selectedDmChannelIdSelector,
   selectedThreadSelector,
   threadSidebarDataSelector,
-  voiceChatSidebarDataSelector
+  voiceChatSidebarOpenSelector
 } from './selectors';
 
 export const useIsAppLoading = () => useSelector(appLoadingSelector);
@@ -42,6 +42,9 @@ export const useModViewOpen = () => {
 };
 
 export const useThreadSidebar = () => useSelector(threadSidebarDataSelector);
+
+export const useIsVoiceChatSidebarOpen = () =>
+  useSelector(voiceChatSidebarOpenSelector);
 
 export const useAutoJoinLastChannel = () =>
   useSelector(autoJoinLastChannelSelector);
@@ -76,9 +79,6 @@ export const useMessageJumpTarget = () =>
 
 export const useBrowserNotificationsForReplies = () =>
   useSelector(browserNotificationsForRepliesSelector);
-
-export const useVoiceChatSidebar = () =>
-  useSelector(voiceChatSidebarDataSelector);
 
 export const usePluginSlotDebug = () => useSelector(pluginSlotDebugSelector);
 

@@ -4,19 +4,12 @@ import { TextTopbar } from './text-top-bar';
 
 type TChannelProps = {
   channelId: number;
-  onClose?: () => void;
 };
 
-const TextChannel = memo(({ channelId, onClose }: TChannelProps) => {
+const TextChannel = memo(({ channelId }: TChannelProps) => {
   const renderHeader = useCallback(
-    (scrollToMessage: (messageId: number) => Promise<void>) => (
-      <TextTopbar
-        onScrollToMessage={scrollToMessage}
-        channelId={channelId}
-        onClose={onClose}
-      />
-    ),
-    [channelId, onClose]
+    () => <TextTopbar channelId={channelId} />,
+    [channelId]
   );
 
   return <Conversation channelId={channelId} renderHeader={renderHeader} />;

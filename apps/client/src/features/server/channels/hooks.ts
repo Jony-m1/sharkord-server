@@ -11,7 +11,9 @@ import {
   directMessagesUnreadCountSelector,
   isCurrentVoiceChannelSelectedSelector,
   selectedChannelIdSelector,
-  selectedChannelTypeSelector
+  selectedChannelTypeSelector,
+  visibleVoiceChatChannelIdSelector,
+  voiceViewChannelIdSelector
 } from './selectors';
 
 export const useChannels = () =>
@@ -44,6 +46,12 @@ export const useChannelPermissionsById = (channelId: number) =>
 
 export const useSelectedChannelType = () =>
   useSelector(selectedChannelTypeSelector);
+
+export const useVoiceViewChannelId = () =>
+  useSelector(voiceViewChannelIdSelector);
+
+export const useVisibleVoiceChatChannelId = () =>
+  useSelector(visibleVoiceChatChannelIdSelector);
 
 export const useChannelsMap = () => useSelector(channelsMapSelector);
 

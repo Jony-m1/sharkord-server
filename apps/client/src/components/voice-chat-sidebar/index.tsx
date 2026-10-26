@@ -1,16 +1,21 @@
-import { TextChannel } from '@/components/channel-view/text';
+import { Conversation } from '@/components/channel-view/text/conversation';
 import { ResizableSidebar } from '@/components/resizable-sidebar';
-import { closeVoiceChatSidebar } from '@/features/app/actions';
-import { useVoiceChatSidebar } from '@/features/app/hooks';
+import { useIsVoiceChatSidebarOpen } from '@/features/app/hooks';
+import { useVoiceViewChannelId } from '@/features/server/channels/hooks';
 import { LocalStorageKey } from '@/helpers/storage';
+import { TestId } from '@sharkord/shared';
 import { memo } from 'react';
 
 const MIN_WIDTH = 360;
 const MAX_WIDTH = 600;
 const DEFAULT_WIDTH = 384;
 
+// the call's own top bar carries the channel's topic and buttons, so the chat has no header
+const renderNoHeader = () => null;
+
 const VoiceChatSidebar = memo(() => {
-  const { isOpen, channelId } = useVoiceChatSidebar();
+  const channelId = useVoiceViewChannelId();
+  const isOpen = useIsVoiceChatSidebarOpen();
 
   if (!channelId) {
     return null;
@@ -25,10 +30,15 @@ const VoiceChatSidebar = memo(() => {
       edge="left"
       isOpen={isOpen}
       className="hidden lg:flex"
+      data-testid={TestId.VOICE_CHAT}
     >
       <div className="flex flex-col h-full w-full">
         <div className="flex-1 flex flex-col overflow-hidden">
-          <TextChannel channelId={channelId} onClose={closeVoiceChatSidebar} />
+          <Conversation
+            key={channelId}
+            channelId={channelId}
+            renderHeader={renderNoHeader}
+          />
         </div>
       </div>
     </ResizableSidebar>

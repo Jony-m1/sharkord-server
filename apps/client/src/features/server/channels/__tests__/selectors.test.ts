@@ -3,7 +3,10 @@ import { ChannelType, type TChannel } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import {
   channelByIdSelector,
-  channelsByCategoryIdSelector
+  channelsByCategoryIdSelector,
+  isChannelTextVisibleByIdSelector,
+  visibleVoiceChatChannelIdSelector,
+  voiceViewChannelIdSelector
 } from '../selectors';
 
 const channel = (id: number, categoryId: number, position: number) =>
@@ -84,5 +87,77 @@ describe('channelsByCategoryIdSelector', () => {
     expect(channelsByCategoryIdSelector(state, 1)).toBe(
       channelsByCategoryIdSelector(state, 1)
     );
+  });
+});
+
+describe('the voice chat', () => {
+  const lounge = { ...channel(1, 1, 0), type: ChannelType.VOICE };
+  const conference = { ...channel(2, 1, 1), type: ChannelType.VOICE };
+  const general = channel(3, 1, 2);
+
+  const callState = ({
+    selectedChannelId,
+    voiceChatSidebarOpen = true,
+    dmsOpen = false,
+    threadsOpen = false
+  }: {
+    selectedChannelId: number | undefined;
+    voiceChatSidebarOpen?: boolean;
+    dmsOpen?: boolean;
+    threadsOpen?: boolean;
+  }) =>
+    ({
+      server: {
+        channels: [lounge, conference, general],
+        selectedChannelId,
+        dmsOpen,
+        threadsOpen
+      },
+      app: { voiceChatSidebarOpen }
+    }) as unknown as IRootState;
+
+  test('should show the chat of the call on screen, so switching calls takes it along', () => {
+    expect(
+      visibleVoiceChatChannelIdSelector(callState({ selectedChannelId: 1 }))
+    ).toBe(1);
+    expect(
+      visibleVoiceChatChannelIdSelector(callState({ selectedChannelId: 2 }))
+    ).toBe(2);
+  });
+
+  test('should show nothing while it is closed, though the call stays on screen', () => {
+    const state = callState({
+      selectedChannelId: 2,
+      voiceChatSidebarOpen: false
+    });
+
+    expect(voiceViewChannelIdSelector(state)).toBe(2);
+    expect(visibleVoiceChatChannelIdSelector(state)).toBeUndefined();
+  });
+
+  test('should not follow you to a text channel', () => {
+    expect(
+      visibleVoiceChatChannelIdSelector(callState({ selectedChannelId: 3 }))
+    ).toBeUndefined();
+  });
+
+  test('should step aside for direct messages and threads, which take the content area', () => {
+    expect(
+      visibleVoiceChatChannelIdSelector(
+        callState({ selectedChannelId: 2, dmsOpen: true })
+      )
+    ).toBeUndefined();
+    expect(
+      visibleVoiceChatChannelIdSelector(
+        callState({ selectedChannelId: 2, threadsOpen: true })
+      )
+    ).toBeUndefined();
+  });
+
+  test('should count as read only the chat that is on screen', () => {
+    const state = callState({ selectedChannelId: 2 });
+
+    expect(isChannelTextVisibleByIdSelector(state, 2)).toBe(true);
+    expect(isChannelTextVisibleByIdSelector(state, 1)).toBe(false);
   });
 });

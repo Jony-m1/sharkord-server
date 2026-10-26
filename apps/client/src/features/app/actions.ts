@@ -15,12 +15,12 @@ import {
 import type { TServerInfo } from '@sharkord/shared';
 import { toast } from 'sonner';
 import { markChannelAsRead, setInfo } from '../server/actions';
+import { visibleVoiceChatChannelIdSelector } from '../server/channels/selectors';
 import { store } from '../store';
 import {
   mutedChannelIdsSelector,
   pluginSlotDebugSelector,
-  voiceChatChannelIdSelector,
-  voiceChatSidebarDataSelector
+  voiceChatSidebarOpenSelector
 } from './selectors';
 import { appSliceActions } from './slice';
 
@@ -253,54 +253,32 @@ export const setMessageJumpTarget = (
   payload: TMessageJumpToTarget | undefined
 ) => store.dispatch(appSliceActions.setMessageJumpTarget(payload));
 
-export const openVoiceChatSidebar = (channelId: number) => {
-  store.dispatch(
-    appSliceActions.setVoiceChatSidebar({ open: true, channelId })
-  );
-
-  markChannelAsRead(channelId);
-  setLocalStorageItem(
-    LocalStorageKey.VOICE_CHAT_SIDEBAR_CHANNEL_ID,
-    channelId.toString()
-  );
-  setLocalStorageItemBool(LocalStorageKey.VOICE_CHAT_SIDEBAR_STATE, true);
+const setVoiceChatSidebarOpen = (open: boolean) => {
+  store.dispatch(appSliceActions.setVoiceChatSidebarOpen(open));
+  setLocalStorageItemBool(LocalStorageKey.VOICE_CHAT_SIDEBAR_STATE, open);
 };
 
-export const closeVoiceChatSidebar = () => {
-  const state = store.getState();
-  const voiceChatChannelId = voiceChatChannelIdSelector(state);
+export const openVoiceChatSidebar = () => {
+  setVoiceChatSidebarOpen(true);
 
-  store.dispatch(
-    appSliceActions.setVoiceChatSidebar({
-      open: false,
-      channelId: voiceChatChannelId
-    })
+  const visibleVoiceChatChannelId = visibleVoiceChatChannelIdSelector(
+    store.getState()
   );
 
-  setLocalStorageItemBool(LocalStorageKey.VOICE_CHAT_SIDEBAR_STATE, false);
-};
-
-export const toggleVoiceChatSidebar = (channelId: number) => {
-  const state = store.getState();
-  const { isOpen, channelId: voiceChatChannelId } =
-    voiceChatSidebarDataSelector(state);
-
-  const isSameChannel = voiceChatChannelId === channelId;
-
-  if (isOpen && isSameChannel) {
-    closeVoiceChatSidebar();
-  } else {
-    openVoiceChatSidebar(channelId);
+  if (visibleVoiceChatChannelId) {
+    markChannelAsRead(visibleVoiceChatChannelId);
   }
 };
 
-export const assertVoiceChatClose = (channelId: number) => {
-  const state = store.getState();
-  const { isOpen, channelId: voiceChatChannelId } =
-    voiceChatSidebarDataSelector(state);
+export const closeVoiceChatSidebar = () => setVoiceChatSidebarOpen(false);
 
-  if (isOpen && voiceChatChannelId === channelId) {
+export const toggleVoiceChatSidebar = () => {
+  const isOpen = voiceChatSidebarOpenSelector(store.getState());
+
+  if (isOpen) {
     closeVoiceChatSidebar();
+  } else {
+    openVoiceChatSidebar();
   }
 };
 

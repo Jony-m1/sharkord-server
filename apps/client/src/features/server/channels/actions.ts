@@ -1,4 +1,3 @@
-import { assertVoiceChatClose } from '@/features/app/actions';
 import { store } from '@/features/store';
 import type { TChannel, TChannelUserPermissionsMap } from '@sharkord/shared';
 import { markChannelAsRead } from '../actions';
@@ -47,8 +46,6 @@ export const updateChannel = (
 
 export const removeChannel = (channelId: number) => {
   store.dispatch(serverSliceActions.removeChannel({ channelId }));
-
-  assertVoiceChatClose(channelId);
 };
 
 export const setChannelPermissions = (
@@ -75,7 +72,6 @@ export const setChannelPermissions = (
   if (!canViewChannel) {
     // user lost VIEW_CHANNEL permission, deselect the channel
     setSelectedChannelId(undefined);
-    assertVoiceChatClose(selectedChannel);
   }
 };
 

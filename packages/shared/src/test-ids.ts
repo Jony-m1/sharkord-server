@@ -22,6 +22,12 @@ export enum TestId {
   MOBILE_BACK_BUTTON = 'mobile-back-button',
   PENDING_UPLOAD = 'pending-upload',
   PENDING_UPLOAD_CANCEL = 'pending-upload-cancel',
+  MESSAGE_PIN = 'message-pin',
+  PINNED_MESSAGES_BUTTON = 'pinned-messages-button',
+  PINNED_MESSAGE = 'pinned-message',
+  VOICE_CHAT = 'voice-chat',
+  VOICE_CHAT_TOGGLE = 'voice-chat-toggle',
+  VOICE_CHAT_TOPIC = 'voice-chat-topic',
 
   MEMBER_ITEM = 'member-item',
   UNREAD_COUNT = 'unread-count',

@@ -1,7 +1,6 @@
 import {
   getLocalStorageItem,
   getLocalStorageItemAsJSON,
-  getLocalStorageItemAsNumber,
   getLocalStorageItemBool,
   LocalStorageKey
 } from '@/helpers/storage';
@@ -37,7 +36,6 @@ export interface TAppState {
   mutedChannelIds: number[];
   messageJumpTarget: TMessageJumpToTarget | undefined;
   voiceChatSidebarOpen: boolean;
-  voiceChatChannelId: number | undefined;
   pluginSlotDebug: boolean;
   modifierKeysHeldMap: Record<string, boolean>;
 }
@@ -97,9 +95,6 @@ const initialState: TAppState = {
   voiceChatSidebarOpen: getLocalStorageItemBool(
     LocalStorageKey.VOICE_CHAT_SIDEBAR_STATE,
     false
-  ),
-  voiceChatChannelId: getLocalStorageItemAsNumber(
-    LocalStorageKey.VOICE_CHAT_SIDEBAR_CHANNEL_ID
   ),
   pluginSlotDebug: getLocalStorageItemBool(
     LocalStorageKey.PLUGIN_SLOT_DEBUG,
@@ -200,15 +195,8 @@ export const appSlice = createSlice({
     ) => {
       state.messageJumpTarget = action.payload;
     },
-    setVoiceChatSidebar: (
-      state,
-      action: PayloadAction<{
-        open: boolean;
-        channelId?: number;
-      }>
-    ) => {
-      state.voiceChatSidebarOpen = action.payload.open;
-      state.voiceChatChannelId = action.payload.channelId;
+    setVoiceChatSidebarOpen: (state, action: PayloadAction<boolean>) => {
+      state.voiceChatSidebarOpen = action.payload;
     },
     setPluginSlotDebug: (state, action: PayloadAction<boolean>) => {
       state.pluginSlotDebug = action.payload;

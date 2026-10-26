@@ -6,10 +6,14 @@ import {
 import { useIsChannelMuted } from '@/features/app/hooks';
 import { requestConfirmation } from '@/features/dialogs/actions';
 import { openServerScreen } from '@/features/server-screens/actions';
-import { useChannelById } from '@/features/server/channels/hooks';
+import {
+  useChannelById,
+  useCurrentVoiceChannelId
+} from '@/features/server/channels/hooks';
 import { useCan } from '@/features/server/hooks';
+import { useSelectChannel } from '@/hooks/use-select-channel';
 import { getTRPCClient } from '@/lib/trpc';
-import { ChannelType, Permission } from '@sharkord/shared';
+import { Permission } from '@sharkord/shared';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -38,12 +42,17 @@ const ChannelContextMenu = memo(
       Permission.MANAGE_CHANNELS,
       Permission.MANAGE_CHANNEL_PERMISSIONS
     ]);
-    const isVoiceChannel = channel?.type === ChannelType.VOICE;
+    const currentVoiceChannelId = useCurrentVoiceChannelId();
+    const selectChannel = useSelectChannel();
     const isMuted = useIsChannelMuted(channelId);
+    // a call's chat shows with the call, so it is offered for the call you are in, where opening
+    // it cannot also join you to a different one
+    const isCurrentVoiceChannel = currentVoiceChannelId === channelId;
 
-    const onOpenChat = useCallback(() => {
-      openVoiceChatSidebar(channelId);
-    }, [channelId]);
+    const onOpenChat = useCallback(async () => {
+      await selectChannel(channelId);
+      openVoiceChatSidebar();
+    }, [channelId, selectChannel]);
 
     const onToggleMuteClick = useCallback(() => {
       toggleChannelMuted(channelId);
@@ -80,7 +89,7 @@ const ChannelContextMenu = memo(
         <ContextMenuContent>
           <ContextMenuLabel>{channel?.name}</ContextMenuLabel>
           <ContextMenuSeparator />
-          {isVoiceChannel && (
+          {isCurrentVoiceChannel && (
             <ContextMenuItem onClick={onOpenChat}>
               {t('openChat')}
             </ContextMenuItem>

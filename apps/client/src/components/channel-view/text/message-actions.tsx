@@ -213,6 +213,7 @@ const MessageActions = memo(
               icon={isPinned ? PinOff : Pin}
               onClick={onPinClick}
               title={isPinned ? t('unpinMessage') : t('pinMessage')}
+              data-testid={TestId.MESSAGE_PIN}
             />
           </Protect>
         )}

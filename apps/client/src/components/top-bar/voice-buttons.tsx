@@ -1,13 +1,14 @@
 import { toggleVoiceChatSidebar } from '@/features/app/actions';
-import { useVoiceChatSidebar } from '@/features/app/hooks';
+import { useVisibleVoiceChatChannelId } from '@/features/server/channels/hooks';
 import {
   useHasUnreadMentions,
   useUnreadMessagesCount
 } from '@/features/server/hooks';
 import { cn } from '@/lib/utils';
+import { TestId } from '@sharkord/shared';
 import { Button, Tooltip } from '@sharkord/ui';
 import { MessageSquare } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UnreadCount } from '../unread-count';
 import { VoiceOptionsController } from './voice-options-controller';
@@ -19,11 +20,8 @@ type TVoiceButtonsProps = {
 
 const VoiceButtons = memo(({ currentVoiceChannelId }: TVoiceButtonsProps) => {
   const { t } = useTranslation('topbar');
-  const { isOpen: isAnyVoiceChatOpen, channelId: openVoiceChatChannelId } =
-    useVoiceChatSidebar();
-
-  const isVoiceChatOpen =
-    isAnyVoiceChatOpen && openVoiceChatChannelId === currentVoiceChannelId;
+  const visibleVoiceChatChannelId = useVisibleVoiceChatChannelId();
+  const isVoiceChatOpen = visibleVoiceChatChannelId === currentVoiceChannelId;
 
   const currentVoiceChannelUnreadCount = useUnreadMessagesCount(
     currentVoiceChannelId
@@ -32,12 +30,6 @@ const VoiceButtons = memo(({ currentVoiceChannelId }: TVoiceButtonsProps) => {
     currentVoiceChannelId
   );
 
-  const handleToggleVoiceChat = useCallback(() => {
-    if (currentVoiceChannelId) {
-      toggleVoiceChatSidebar(currentVoiceChannelId);
-    }
-  }, [currentVoiceChannelId]);
-
   return (
     <>
       <VoiceOptionsController />
@@ -45,7 +37,8 @@ const VoiceButtons = memo(({ currentVoiceChannelId }: TVoiceButtonsProps) => {
       <Button
         variant="ghost"
         size="sm"
-        onClick={handleToggleVoiceChat}
+        onClick={toggleVoiceChatSidebar}
+        data-testid={TestId.VOICE_CHAT_TOGGLE}
         className="h-7 px-2 transition-all duration-200 ease-in-out"
       >
         <Tooltip

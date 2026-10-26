@@ -60,16 +60,8 @@ export const messageJumpTargetSelector = (state: IRootState) =>
 export const voiceChatSidebarOpenSelector = (state: IRootState) =>
   state.app.voiceChatSidebarOpen;
 
-export const voiceChatChannelIdSelector = (state: IRootState) =>
-  state.app.voiceChatChannelId;
-
 export const pluginSlotDebugSelector = (state: IRootState) =>
   state.app.pluginSlotDebug;
-
-export const voiceChatSidebarDataSelector = createSelector(
-  [voiceChatSidebarOpenSelector, voiceChatChannelIdSelector],
-  (isOpen, channelId) => ({ isOpen, channelId })
-);
 
 export const threadSidebarDataSelector = createSelector(
   [

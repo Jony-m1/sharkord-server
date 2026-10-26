@@ -1,6 +1,6 @@
 import {
   selectedDmChannelIdSelector,
-  voiceChatSidebarDataSelector
+  voiceChatSidebarOpenSelector
 } from '@/features/app/selectors';
 import type { IRootState } from '@/features/store';
 import { createSelector } from '@reduxjs/toolkit';
@@ -91,6 +91,33 @@ export const isCurrentVoiceChannelSelectedSelector = createSelector(
     selectedChannelId === currentVoiceChannelId
 );
 
+// the voice channel whose call fills the content area, in the same order the content area picks
+// what to show: threads, then direct messages, then the selected channel
+export const voiceViewChannelIdSelector = (state: IRootState) => {
+  const threadsOpen = threadsOpenSelector(state);
+  const dmsOpen = dmsOpenSelector(state);
+  const selectedChannelType = selectedChannelTypeSelector(state);
+
+  if (threadsOpen || dmsOpen || selectedChannelType !== ChannelType.VOICE) {
+    return undefined;
+  }
+
+  return selectedChannelIdSelector(state);
+};
+
+// a voice channel's chat belongs to its call, so it is the chat of whichever call is on screen.
+// open or closed is the one thing remembered, and switching calls takes the chat along
+export const visibleVoiceChatChannelIdSelector = (state: IRootState) => {
+  const voiceViewChannelId = voiceViewChannelIdSelector(state);
+  const isOpen = voiceChatSidebarOpenSelector(state);
+
+  if (!isOpen) {
+    return undefined;
+  }
+
+  return voiceViewChannelId;
+};
+
 // this selector is not cached, do not use it outside actions
 export const isChannelTextVisibleByIdSelector = (
   state: IRootState,
@@ -113,10 +140,9 @@ export const isChannelTextVisibleByIdSelector = (
   }
 
   if (channel.type === ChannelType.VOICE) {
-    const voiceChatSidebar = voiceChatSidebarDataSelector(state);
-    const isVoiceChatSelected = voiceChatSidebar.channelId === channelId;
+    const visibleVoiceChatChannelId = visibleVoiceChatChannelIdSelector(state);
 
-    return voiceChatSidebar.isOpen && isVoiceChatSelected;
+    return visibleVoiceChatChannelId === channelId;
   }
 
   const selectedChannelId = selectedChannelIdSelector(state);
