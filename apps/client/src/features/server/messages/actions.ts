@@ -1,10 +1,9 @@
-import { openThread } from '@/features/app/actions';
 import {
-  browserNotificationsForDmsSelector,
-  browserNotificationsForMentionsSelector,
-  browserNotificationsForRepliesSelector,
-  browserNotificationsSelector,
   isChannelMutedSelector,
+  notifyAllMessagesSelector,
+  notifyDmsSelector,
+  notifyMentionsOnlySelector,
+  notifyRepliesSelector,
   selectedThreadSelector,
   threadSidebarDataSelector
 } from '@/features/app/selectors';
@@ -12,6 +11,8 @@ import { appSliceActions } from '@/features/app/slice';
 import { store } from '@/features/store';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { playSound } from '@/helpers/sounds';
+import { i18n } from '@/i18n';
+import { notify } from '@/lib/notifications';
 import type { TConversation } from '@/types';
 import {
   FileCategory,
@@ -22,7 +23,7 @@ import {
   type TJoinedMessage,
   type TThreadSummary
 } from '@sharkord/shared';
-import { jumpToMessage, markChannelAsRead } from '../actions';
+import { markVisibleChannelAsRead } from '../actions';
 import {
   channelByIdSelector,
   isChannelTextVisibleByIdSelector
@@ -41,15 +42,11 @@ import {
 } from '../users/selectors';
 import { shouldSendMessageNotification } from './helpers';
 
-const sendBrowserNotification = (
+const sendMessageNotification = (
   message: TJoinedMessage,
   channelId: number,
   isDm = false
 ) => {
-  if (!('Notification' in window) || Notification.permission !== 'granted') {
-    return;
-  }
-
   const state = store.getState();
 
   const user = userByIdSelector(state, message.userId);
@@ -65,50 +62,41 @@ const sendBrowserNotification = (
   const textContent = getPlainTextFromHtml(message.content ?? '');
 
   const title = isDm
-    ? `${authorName} (DM)`
-    : `${authorName} in #${channel?.name ?? 'unknown'}`;
+    ? i18n.t('common:notificationTitleDm', { author: authorName })
+    : i18n.t('common:notificationTitleChannel', {
+        author: authorName,
+        channel: channel.name
+      });
 
   const imageFile = message.files?.find(
     (file) => getFileCategory(file.extension) === FileCategory.IMAGE
   );
 
-  let body = 'Sent an attachment';
+  let body = i18n.t('common:notificationSentAttachment');
 
   if (textContent) {
     body = textContent;
   } else if (imageFile) {
-    body = 'Sent an image';
+    body = i18n.t('common:notificationSentImage');
   }
 
-  const icon = user?.avatar ? getFileUrl(user.avatar) : undefined;
-  // a preview of the picture where the platform shows one; not in the dom typings yet
+  const icon = user.avatar ? getFileUrl(user.avatar) : undefined;
+  // a preview of the picture, where the platform shows one
   const image = imageFile ? getFileUrl(imageFile) : undefined;
 
-  const notification = new Notification(title, {
+  notify({
+    title,
     body,
     icon,
-    image
-  } as NotificationOptions);
-
-  notification.onclick = () => {
-    window.focus();
-
-    const { parentMessageId } = message;
-
-    jumpToMessage({
+    image,
+    target: {
+      type: 'message',
       channelId,
       messageId: message.id,
-      parentMessageId: parentMessageId ?? undefined,
+      parentMessageId: message.parentMessageId ?? undefined,
       isDm
-    });
-
-    // a thread reply lives in its thread, which jumpToMessage does not open
-    if (parentMessageId) {
-      openThread(parentMessageId, channelId);
     }
-
-    notification.close();
-  };
+  });
 };
 
 const typingTimeouts: { [key: string]: NodeJS.Timeout } = {};
@@ -160,9 +148,8 @@ export const addMessages = (
   if (isSubscriptionMessage && messages.length > 0) {
     const state = store.getState();
     const ownUserId = ownUserIdSelector(state);
-    const hasBrowserNotificationsEnabled = browserNotificationsSelector(state);
-    const notificationsForMentionsOnly =
-      browserNotificationsForMentionsSelector(state);
+    const notifiesAllMessages = notifyAllMessagesSelector(state);
+    const notificationsForMentionsOnly = notifyMentionsOnlySelector(state);
     const targetMessage = messages[0];
     const isFromOwnUser =
       targetMessage.userId && ownUserId === targetMessage.userId;
@@ -209,26 +196,28 @@ export const addMessages = (
       }
 
       if (isNotifiable && !isMessageOnScreen) {
+        // any setting that covers the message notifies, so mentions only does not silence
+        // dms or replies to you
         const shouldNotify = shouldSendMessageNotification({
           isDm: isDmChannel,
           isMentioned,
           isReplyToOwnMessage:
             !!targetMessage.replyToMessageId &&
             targetMessage.replyTo?.userId === ownUserId,
-          allMessages: hasBrowserNotificationsEnabled,
+          allMessages: notifiesAllMessages,
           mentionsOnly: notificationsForMentionsOnly,
-          dms: browserNotificationsForDmsSelector(state),
-          replies: browserNotificationsForRepliesSelector(state)
+          dms: notifyDmsSelector(state),
+          replies: notifyRepliesSelector(state)
         });
 
         if (shouldNotify) {
-          sendBrowserNotification(targetMessage, channelId, isDmChannel);
+          sendMessageNotification(targetMessage, channelId, isDmChannel);
         }
       }
     }
 
     if (isChannelTextVisible && !isFromOwnUser && !isThreadReply) {
-      markChannelAsRead(channelId, true);
+      markVisibleChannelAsRead(channelId);
     }
   }
 };

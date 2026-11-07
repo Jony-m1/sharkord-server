@@ -25,6 +25,7 @@ import { memo, useContext, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RoleBadge } from '../role-badge';
 import { UserAvatar } from '../user-avatar';
+import { UserBanner } from '../user-banner';
 import { OtherProfileActions, OwnProfileActions } from './profile-actions';
 import { ProfileVoiceRow } from './profile-voice-row';
 
@@ -37,10 +38,7 @@ const ProfileBanner = memo(
   ({ bannerUrl, profileColor }: TProfileBannerProps) => {
     if (bannerUrl) {
       return (
-        <div
-          className="h-24 w-full rounded-t-md bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url("${bannerUrl}")` }}
-        />
+        <UserBanner src={bannerUrl} className="h-24 w-full rounded-t-md" />
       );
     }
 

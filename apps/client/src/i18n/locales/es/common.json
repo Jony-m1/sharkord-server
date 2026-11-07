@@ -76,6 +76,11 @@
   "failedUpdateWebcamState": "Error al actualizar el estado de la cámara",
   "failedUpdateScreenShareState": "Error al actualizar el estado de la pantalla compartida",
   "notificationPermissionDenied": "Permiso de notificaciones denegado",
+  "notificationTitleDm": "{{author}} (MD)",
+  "notificationTitleChannel": "{{author}} en #{{channel}}",
+  "notificationSentAttachment": "Envió un archivo adjunto",
+  "notificationSentImage": "Envió una imagen",
+  "pluginNotificationTitle": "{{plugin}}: {{title}}",
   "uploadsDisabled": "Las subidas de archivos están deshabilitadas en este servidor",
   "noUploadPermission": "No tienes permiso para subir archivos",
   "serverUpdateInitiated": "Actualización del servidor iniciada",
@@ -126,6 +131,8 @@
   "searchResults": "Resultados de búsqueda ({{count}})",
   "wasReactedBy": "ha sido reaccionado por {{reacters}}.",
   "andMore": "y {{count}} más",
+  "typeAMessage": "Escribe un mensaje...",
+  "messageChannel": "Mensaje en \"{{name}}\"",
   "toggleParticipants": "Mostrar/ocultar participantes",
   "voiceChannelEmpty": "No hay nadie en el canal de voz",
   "voiceChannelEmptyHint": "Únete al canal de voz para empezar una reunión",
@@ -170,5 +177,8 @@
   "uploadingFileCount_one": "{{count}} archivo",
   "uploadingFileCount_other": "{{count}} archivos",
   "cancelUpload": "Cancelar subida",
-  "uploadSending": "Enviando…"
+  "uploadSending": "Enviando…",
+  "updateServerConfirmTitle": "¿Actualizar el servidor?",
+  "updateServerConfirmMessage": "Descarga e instala la última versión del servidor. El servidor se reinicia durante el proceso, lo que causa una breve interrupción.",
+  "updateServerConfirmLabel": "Actualizar"
 }

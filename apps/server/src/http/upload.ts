@@ -2,18 +2,19 @@ import {
   exceedsMaxFileSize,
   getErrorMessage,
   Permission,
-  UploadHeaders
+  UploadHeaders,
+  UploadPurpose
 } from '@sharkord/shared';
 import fs from 'fs';
 import http from 'http';
 import { pipeline } from 'stream/promises';
 import z from 'zod';
-import { config } from '../config';
 import { userCan } from '../db/queries/roles';
 import { getSettings } from '../db/queries/server';
 import { getUserByToken } from '../db/queries/users';
 import { fileManager } from '../helpers/file-manager';
 import { getWsInfo } from '../helpers/get-ws-info';
+import { getRateLimit } from '../helpers/rate-limits';
 import { logger } from '../logger';
 import { createRateLimiter } from '../utils/rate-limiters/rate-limiter';
 import {
@@ -25,12 +26,12 @@ import {
 const zHeaders = z.object({
   [UploadHeaders.TOKEN]: z.string(),
   [UploadHeaders.ORIGINAL_NAME]: z.string(),
-  [UploadHeaders.CONTENT_LENGTH]: z.coerce.number().int().nonnegative()
+  [UploadHeaders.CONTENT_LENGTH]: z.coerce.number().int().nonnegative(),
+  [UploadHeaders.PURPOSE]: z.enum(UploadPurpose).optional()
 });
 
 const uploadRateLimiter = createRateLimiter({
-  maxRequests: config.rateLimiters.upload.maxRequests,
-  windowMs: config.rateLimiters.upload.windowMs
+  getLimit: () => getRateLimit()
 });
 
 const uploadFileRouteHandler = async (
@@ -55,10 +56,11 @@ const uploadFileRouteHandler = async (
 
   const parsedHeaders = zHeaders.parse(req.headers);
 
-  const [token, rawOriginalName, contentLength] = [
+  const [token, rawOriginalName, contentLength, purpose] = [
     parsedHeaders[UploadHeaders.TOKEN],
     parsedHeaders[UploadHeaders.ORIGINAL_NAME],
-    parsedHeaders[UploadHeaders.CONTENT_LENGTH]
+    parsedHeaders[UploadHeaders.CONTENT_LENGTH],
+    parsedHeaders[UploadHeaders.PURPOSE] ?? UploadPurpose.MESSAGE
   ];
 
   const originalName = sanitizeFileName(rawOriginalName);
@@ -77,9 +79,23 @@ const uploadFileRouteHandler = async (
     return;
   }
 
-  if (!(await userCan(user.id, Permission.UPLOAD_FILES))) {
+  // profile images are not message attachments, so they are gated by their own
+  // permission instead of UPLOAD_FILES, which keeps a role that cannot share files
+  // from also losing the ability to change an avatar or banner
+  const isProfileImage = purpose === UploadPurpose.PROFILE_IMAGE;
+  const requiredPermission = isProfileImage
+    ? Permission.SET_PROFILE_IMAGE
+    : Permission.UPLOAD_FILES;
+
+  if (!(await userCan(user.id, requiredPermission))) {
     req.resume();
-    sendJsonError(res, 403, 'You do not have permission to upload files');
+    sendJsonError(
+      res,
+      403,
+      isProfileImage
+        ? 'You do not have permission to change your profile image'
+        : 'You do not have permission to upload files'
+    );
     return;
   }
 

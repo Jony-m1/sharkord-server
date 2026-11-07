@@ -64,8 +64,9 @@ Conventions:
   (`ctx.needsPermission` / `ctx.needsChannelPermission`).
 - Use `invariant(condition, { code, message })` from `utils/invariant` instead of throwing
   `TRPCError` by hand. Messages are user-facing — write them that way.
-- Use `protectedProcedure`; wrap in `rateLimitedProcedure` for anything a user can spam,
-  with limits from `config.rateLimiters`.
+- Use `protectedProcedure`. Every procedure is rate limited by the global limit from the
+  server settings; add `.meta({ rateLimit: RateLimiter.X })` only when the route needs a
+  different one (see the security check order below).
 - Imports are auto-organized by prettier — don't hand-sort.
 - **ALWAYS** use modern ES6+ syntax: `const`/`let`, arrow functions, destructuring, template literals, etc.
 
@@ -106,9 +107,13 @@ them have passed.
 
 1. **Authentication** — build the route on `protectedProcedure`. Only use
    `publicProcedure` when the endpoint is genuinely pre-auth, and say why in a comment.
-2. **Rate limiting** — wrap in `rateLimitedProcedure` with limits from
-   `config.rateLimiters` for anything a user can spam or use to probe (writes, uploads,
-   searches, anything touching auth or invites).
+2. **Rate limiting** — the global limit applies to every procedure automatically, each
+   route in its own bucket. Add an override (`.meta({ rateLimit: RateLimiter.X })`, a new
+   `RateLimiter` entry in `packages/shared` if none fits) only when the global would be
+   wrong for the route: it checks a secret (passwords, tokens), every request is seen by
+   other users (messages, sounds), it is expensive (search), or normal use exceeds the
+   global by design (typing, push-to-talk). The limits themselves are edited in the server
+   settings, never hardcoded.
 3. **Input validation** — `.input(z.object({ ... }))`. Validate shape _and_ bounds
    (lengths, ranges, enums) here, not later in the handler.
 4. **Global permission** — `ctx.needsPermission(Permission.X)` for the action itself.
@@ -218,8 +223,10 @@ Plain `bun test` at the root will fail.
 How server tests work:
 
 - `src/__tests__/mock-db.ts`, `prepare.ts` and `setup.ts` are preloaded. Each test gets a
-  **fresh in-memory SQLite db**, migrated and seeded — tests are isolated, no cleanup
-  needed between them.
+  **fresh in-memory SQLite db**, a copy of one migrated and seeded once per run, so tests
+  are isolated and need no cleanup between them. Connection pragmas are not part of the
+  copy: `createTestSqlite` in `mock-db.ts` turns `foreign_keys` back on, add any other the
+  tests need there.
 - Call routes through a real tRPC caller: `const { caller } = await initTest(userId)` from
   `src/__tests__/helpers.ts` (defaults to user 1, an admin; user 2 is the low-permission
   user used for permission checks). HTTP routes are tested against a real server on
@@ -391,7 +398,7 @@ parameterized selectors do not evict each other. Rules:
 
 ### Translations
 
-If you add new user-facing strings, you need to make sure you add them to ALL supported languages. To do this, navigate to the scripts package and run the following command:
+If you add new user-facing strings, you need to make sure you add them to ALL supported languages. To do this, navigate to the scripts package and run the following command (it covers both the client and the desktop app, whose locales are in `apps/desktop/src/i18n/locales/`):
 
 ```bash
 bun run synci18n
@@ -402,6 +409,25 @@ This command will output a list of missing translations, including the language,
 ### Tests
 
 Every new behaviour needs tests and the whole suite must pass, see [Testing](#testing).
+
+### Desktop bridge version
+
+The desktop app and a server's client only get desktop features together when their
+`DESKTOP_BRIDGE_VERSION` (`packages/shared/src/desktop.ts`) matches exactly, any other pair
+runs that server as a plain website in the app. If your change touches the bridge, bump it
+by one:
+
+- `TDesktopBridge`: adding, removing or renaming a method, or changing what it takes or
+  returns, including every type it sends or receives (`TDesktopUnreadState`,
+  `TAppNotification`, `TDesktopHotkeyBinding`, ...).
+- The preload that implements it (`apps/desktop/src/preload/server-view.ts`) or what the
+  main process accepts from it (the bridge schemas in `apps/desktop/src/main/views/`).
+- What a value means, even when its shape stays the same.
+
+Bump once per branch: if it is already higher than on `development`, leave it. Never change
+`TDesktopEntry` or `getDesktopMismatch`, they are how every version finds out whether it
+matches. The shell's own IPC (`IpcChannel`, `window.desktop`) is not the bridge and needs no
+bump.
 
 ## Style
 

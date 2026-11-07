@@ -76,6 +76,11 @@
   "failedUpdateWebcamState": "Aktualizace stavu kamery se nezdařila",
   "failedUpdateScreenShareState": "Aktualizace sdílení obrazovky se nezdařila",
   "notificationPermissionDenied": "Oprávnění k oznámením bylo zamítnuto",
+  "notificationTitleDm": "{{author}} (SZ)",
+  "notificationTitleChannel": "{{author}} v #{{channel}}",
+  "notificationSentAttachment": "Poslal(a) přílohu",
+  "notificationSentImage": "Poslal(a) obrázek",
+  "pluginNotificationTitle": "{{plugin}}: {{title}}",
   "uploadsDisabled": "Nahrávání souborů je na tomto serveru zakázáno",
   "noUploadPermission": "Nemáte oprávnění nahrávat soubory",
   "serverUpdateInitiated": "Aktualizace serveru zahájena",
@@ -126,6 +131,8 @@
   "searchResults": "Výsledky hledání ({{count}})",
   "wasReactedBy": "reagovali {{reacters}}.",
   "andMore": "a dalších {{count}}",
+  "typeAMessage": "Napište zprávu...",
+  "messageChannel": "Zpráva do „{{name}}“",
   "toggleParticipants": "Zobrazit/skrýt účastníky",
   "voiceChannelEmpty": "V hlasovém kanálu nikdo není",
   "voiceChannelEmptyHint": "Připojte se k hlasovému kanálu a zahajte schůzku",
@@ -170,5 +177,8 @@
   "uploadingFileCount_one": "{{count}} soubor",
   "uploadingFileCount_other": "{{count}} souborů",
   "cancelUpload": "Zrušit nahrávání",
-  "uploadSending": "Odesílání…"
+  "uploadSending": "Odesílání…",
+  "updateServerConfirmTitle": "Aktualizovat server?",
+  "updateServerConfirmMessage": "Stáhne a nainstaluje nejnovější verzi serveru. Server se během toho restartuje, což způsobí krátký výpadek.",
+  "updateServerConfirmLabel": "Aktualizovat"
 }

@@ -76,6 +76,11 @@
   "failedUpdateWebcamState": "Impossibile aggiornare lo stato della webcam",
   "failedUpdateScreenShareState": "Impossibile aggiornare la condivisione schermo",
   "notificationPermissionDenied": "Permesso per le notifiche negato",
+  "notificationTitleDm": "{{author}} (MD)",
+  "notificationTitleChannel": "{{author}} in #{{channel}}",
+  "notificationSentAttachment": "Ha inviato un allegato",
+  "notificationSentImage": "Ha inviato un'immagine",
+  "pluginNotificationTitle": "{{plugin}}: {{title}}",
   "uploadsDisabled": "I caricamenti di file sono disabilitati su questo server",
   "noUploadPermission": "Non hai il permesso di caricare file",
   "serverUpdateInitiated": "Aggiornamento del server avviato",
@@ -126,6 +131,8 @@
   "searchResults": "Risultati ricerca ({{count}})",
   "wasReactedBy": "ha ricevuto una reazione da {{reacters}}.",
   "andMore": "e altri {{count}}",
+  "typeAMessage": "Scrivi un messaggio...",
+  "messageChannel": "Messaggio in \"{{name}}\"",
   "toggleParticipants": "Mostra/nascondi partecipanti",
   "voiceChannelEmpty": "Nessuno nel canale vocale",
   "voiceChannelEmptyHint": "Entra nel canale vocale per iniziare una riunione",
@@ -170,5 +177,8 @@
   "uploadingFileCount_one": "{{count}} file",
   "uploadingFileCount_other": "{{count}} file",
   "cancelUpload": "Annulla caricamento",
-  "uploadSending": "Invio…"
+  "uploadSending": "Invio…",
+  "updateServerConfirmTitle": "Aggiornare il server?",
+  "updateServerConfirmMessage": "Scarica e installa l'ultima versione del server. Il server si riavvia durante il processo, causando una breve interruzione.",
+  "updateServerConfirmLabel": "Aggiorna"
 }

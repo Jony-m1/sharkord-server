@@ -76,6 +76,11 @@
   "failedUpdateWebcamState": "Échec de la mise à jour de la caméra",
   "failedUpdateScreenShareState": "Échec de la mise à jour du partage d’écran",
   "notificationPermissionDenied": "Autorisation de notification refusée",
+  "notificationTitleDm": "{{author}} (MP)",
+  "notificationTitleChannel": "{{author}} dans #{{channel}}",
+  "notificationSentAttachment": "A envoyé une pièce jointe",
+  "notificationSentImage": "A envoyé une image",
+  "pluginNotificationTitle": "{{plugin}} : {{title}}",
   "uploadsDisabled": "Les envois de fichiers sont désactivés sur ce serveur",
   "noUploadPermission": "Vous n’avez pas la permission d’envoyer des fichiers",
   "serverUpdateInitiated": "Mise à jour du serveur lancée",
@@ -126,6 +131,8 @@
   "searchResults": "Résultats de la recherche ({{count}})",
   "wasReactedBy": "{{reacters}} a réagi.",
   "andMore": "et {{count}} autres",
+  "typeAMessage": "Écrivez un message...",
+  "messageChannel": "Message dans « {{name}} »",
   "toggleParticipants": "Afficher/masquer les participants",
   "voiceChannelEmpty": "Personne dans le salon vocal",
   "voiceChannelEmptyHint": "Rejoignez le salon vocal pour démarrer une réunion",
@@ -170,5 +177,8 @@
   "uploadingFileCount_one": "{{count}} fichier",
   "uploadingFileCount_other": "{{count}} fichiers",
   "cancelUpload": "Annuler l'envoi",
-  "uploadSending": "Envoi…"
+  "uploadSending": "Envoi…",
+  "updateServerConfirmTitle": "Mettre à jour le serveur ?",
+  "updateServerConfirmMessage": "Télécharge et installe la dernière version du serveur. Le serveur redémarre pendant l'opération, ce qui entraîne une courte interruption.",
+  "updateServerConfirmLabel": "Mettre à jour"
 }

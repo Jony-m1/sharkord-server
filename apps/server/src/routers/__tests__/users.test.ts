@@ -5,6 +5,8 @@ import {
   Permission,
   ServerEvents,
   type TTempFile,
+  UploadHeaders,
+  UploadPurpose,
   UserStatus
 } from '@sharkord/shared';
 import { describe, expect, spyOn, test } from 'bun:test';
@@ -18,6 +20,7 @@ import {
   login,
   uploadFile
 } from '../../__tests__/helpers';
+import { getRateLimit } from '../../helpers/rate-limits';
 import { tdb } from '../../__tests__/setup';
 import { getUserByToken } from '../../db/queries/users';
 import {
@@ -39,6 +42,16 @@ import {
 } from '../../helpers/time-tracking';
 import { pubsub } from '../../utils/pubsub';
 import { handleSocketClose } from '../../utils/wss';
+
+const revokeFromDefaultRole = async (permission: Permission) =>
+  tdb
+    .delete(rolePermissions)
+    .where(
+      and(
+        eq(rolePermissions.roleId, 2),
+        eq(rolePermissions.permission, permission)
+      )
+    );
 
 describe('users router', () => {
   test('should throw when user lacks permissions (getAll)', async () => {
@@ -152,6 +165,48 @@ describe('users router', () => {
     expect(info.user.id).toBe(2);
   });
 
+  test('should list the users that share an ip with the user', async () => {
+    const createdAt = Date.now();
+
+    await tdb.insert(logins).values([
+      { userId: 2, ip: '10.0.0.1', createdAt },
+      { userId: 2, ip: '10.0.0.2', createdAt },
+      { userId: 3, ip: '10.0.0.1', createdAt },
+      { userId: 3, ip: '10.0.0.2', createdAt },
+      { userId: 4, ip: '10.0.0.3', createdAt }
+    ]);
+
+    const { caller } = await initTest();
+
+    const info = await caller.users.getInfo({
+      userId: 2
+    });
+
+    expect(info.sharedIp.users.map(({ id }) => id)).toEqual([3]);
+    expect(info.sharedIp.hasMore).toBe(false);
+  });
+
+  test('should cap the users that share an ip and flag that there are more', async () => {
+    const createdAt = Date.now();
+
+    await tdb.insert(logins).values(
+      [2, 3, 4, 5, 6, 7, 8].map((userId) => ({
+        userId,
+        ip: '10.0.0.1',
+        createdAt
+      }))
+    );
+
+    const { caller } = await initTest();
+
+    const info = await caller.users.getInfo({
+      userId: 2
+    });
+
+    expect(info.sharedIp.users.length).toBe(5);
+    expect(info.sharedIp.hasMore).toBe(true);
+  });
+
   test('should include user storage info', async () => {
     const { caller } = await initTest();
     const now = Date.now();
@@ -259,18 +314,21 @@ describe('users router', () => {
     });
 
     // insert a login record for user 1 so we can verify ip and location are hidden
-    await tdb.insert(logins).values({
-      userId: 1,
-      ip: '192.168.1.1',
-      city: 'Gondomar',
-      region: 'Porto',
-      country: 'PT',
-      loc: '41.1833,-8.6333',
-      org: 'MEO',
-      postal: '10001',
-      timezone: 'Europe/Lisbon',
-      createdAt: Date.now()
-    });
+    await tdb.insert(logins).values([
+      {
+        userId: 1,
+        ip: '192.168.1.1',
+        city: 'Gondomar',
+        region: 'Porto',
+        country: 'PT',
+        loc: '41.1833,-8.6333',
+        org: 'MEO',
+        postal: '10001',
+        timezone: 'Europe/Lisbon',
+        createdAt: Date.now()
+      },
+      { userId: 3, ip: '192.168.1.1', createdAt: Date.now() }
+    ]);
 
     const { caller } = await initTest(2);
 
@@ -292,6 +350,8 @@ describe('users router', () => {
       expect(login.ip).toBeNull();
       expect(login.loc).toBeNull();
     });
+
+    expect(info.sharedIp).toEqual({ users: [], hasMore: false });
   });
 
   test('should throw when getting info for non-existing user', async () => {
@@ -612,6 +672,33 @@ describe('users router', () => {
     expect(userInfo!.user.avatarId).toBeNull();
   });
 
+  test('should refuse an avatar change without SET_PROFILE_IMAGE', async () => {
+    const { caller, mockedToken } = await initTest(2);
+
+    const file = new File(['avatar content'], 'avatar.png', {
+      type: 'image/png'
+    });
+
+    const uploadResponse = await uploadFile(file, mockedToken, {
+      [UploadHeaders.PURPOSE]: UploadPurpose.PROFILE_IMAGE
+    });
+    const uploadData = (await uploadResponse.json()) as TTempFile;
+
+    await revokeFromDefaultRole(Permission.SET_PROFILE_IMAGE);
+
+    await expect(
+      caller.users.changeAvatar({ fileId: uploadData.id })
+    ).rejects.toThrow('Insufficient permissions');
+  });
+
+  test('should still allow clearing an avatar without SET_PROFILE_IMAGE', async () => {
+    const { caller } = await initTest(2);
+
+    await revokeFromDefaultRole(Permission.SET_PROFILE_IMAGE);
+
+    await caller.users.changeAvatar({});
+  });
+
   test('should enforce configured avatar size limit', async () => {
     const { caller, mockedToken } = await initTest();
 
@@ -680,6 +767,25 @@ describe('users router', () => {
 
     expect(userInfo).toBeDefined();
     expect(userInfo!.user.bannerId).toBeNull();
+  });
+
+  test('should refuse a banner change without SET_PROFILE_IMAGE', async () => {
+    const { caller, mockedToken } = await initTest(2);
+
+    const file = new File(['banner content'], 'banner.png', {
+      type: 'image/png'
+    });
+
+    const uploadResponse = await uploadFile(file, mockedToken, {
+      [UploadHeaders.PURPOSE]: UploadPurpose.PROFILE_IMAGE
+    });
+    const uploadData = (await uploadResponse.json()) as TTempFile;
+
+    await revokeFromDefaultRole(Permission.SET_PROFILE_IMAGE);
+
+    await expect(
+      caller.users.changeBanner({ fileId: uploadData.id })
+    ).rejects.toThrow('Insufficient permissions');
   });
 
   test('should enforce configured banner size limit', async () => {
@@ -1068,6 +1174,101 @@ describe('users router', () => {
       .get();
 
     expect(deletedUser).toBeUndefined();
+  });
+
+  describe('deleteOwn', () => {
+    test('should delete your own account after checking the password', async () => {
+      const { caller } = await initTest(2);
+
+      await caller.users.deleteOwn({ password: 'password123' });
+
+      const deletedUser = await tdb
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, 2))
+        .get();
+
+      expect(deletedUser).toBeUndefined();
+    });
+
+    test('should keep your messages under the deleted user unless wiped', async () => {
+      const { caller } = await initTest(3);
+
+      await caller.users.deleteOwn({ password: 'password123' });
+
+      const message = await tdb
+        .select({ userId: messages.userId })
+        .from(messages)
+        .where(eq(messages.id, 2))
+        .get();
+      const placeholder = await tdb
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.identity, DELETED_USER_IDENTITY_AND_NAME))
+        .get();
+
+      expect(message?.userId).toBe(placeholder!.id);
+    });
+
+    test('should remove your messages when wiped', async () => {
+      const { caller } = await initTest(3);
+
+      await caller.users.deleteOwn({ password: 'password123', wipe: true });
+
+      const message = await tdb
+        .select({ id: messages.id })
+        .from(messages)
+        .where(eq(messages.id, 2))
+        .get();
+
+      expect(message).toBeUndefined();
+    });
+
+    test('should refuse a wrong or missing password', async () => {
+      const { caller } = await initTest(2);
+
+      await expect(
+        caller.users.deleteOwn({ password: 'not-the-password' })
+      ).rejects.toThrow('Password is incorrect');
+      await expect(caller.users.deleteOwn({})).rejects.toThrow(
+        'Password is incorrect'
+      );
+
+      const user = await tdb
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, 2))
+        .get();
+
+      expect(user).toBeDefined();
+    });
+
+    test('should not ask an sso account for a password', async () => {
+      await tdb
+        .update(users)
+        .set({ passwordSet: false })
+        .where(eq(users.id, 2));
+
+      const { caller } = await initTest(2);
+
+      await caller.users.deleteOwn({});
+
+      const user = await tdb
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, 2))
+        .get();
+
+      expect(user).toBeUndefined();
+    });
+
+    test('should refuse the server owner', async () => {
+      const { caller } = await initTest(1);
+
+      await expect(
+        caller.users.deleteOwn({ password: 'password123' })
+      ).rejects.toThrow("The server owner's account can't be deleted.");
+    });
   });
 
   test('should throw when trying to delete yourself', async () => {
@@ -1479,6 +1680,16 @@ describe('users router', () => {
     expect(info.user.banReason).toBeNull();
   });
 
+  test('should refuse a token from before the ban once the user is unbanned', async () => {
+    const { caller } = await initTest();
+
+    await caller.users.ban({ userId: 2 });
+    await caller.users.unban({ userId: 2 });
+
+    // getCaller signs with the version the user had before the ban
+    await expect(getCaller(2)).rejects.toThrow('Invalid authentication token');
+  });
+
   test('should kick every session of a connected user', async () => {
     const firstTab = createFakeSocket();
     const secondTab = createFakeSocket();
@@ -1750,6 +1961,17 @@ describe('users router', () => {
     expect(assigned.length).toBe(0);
   });
 
+  test('should throw when adding a role to a non-existing user', async () => {
+    const { caller } = await initTest();
+
+    await expect(
+      caller.users.addRole({
+        userId: 9999,
+        roleId: 2
+      })
+    ).rejects.toThrow('User not found');
+  });
+
   test('should throw when adding a non-existing role to a user', async () => {
     const { caller } = await initTest();
 
@@ -1773,6 +1995,22 @@ describe('users router', () => {
     const [owner] = await tdb.select().from(users).where(eq(users.id, 1));
 
     expect(owner!.banned).toBeFalsy();
+  });
+
+  test('should not let a moderator unban the owner', async () => {
+    await tdb.update(users).set({ banned: true }).where(eq(users.id, 1));
+
+    const { caller } = await initTest(5);
+
+    await expect(
+      caller.users.unban({
+        userId: 1
+      })
+    ).rejects.toThrow('Only users with the owner role can act on the server');
+
+    const [owner] = await tdb.select().from(users).where(eq(users.id, 1));
+
+    expect(owner!.banned).toBe(true);
   });
 
   test('should not let a moderator kick the owner', async () => {
@@ -2130,10 +2368,12 @@ describe('setAfk', () => {
     ).rejects.toThrow();
   });
 
+  // every toggle reaches everyone online, so the global limit is what holds it back
   test('should rate limit repeated toggling', async () => {
     const { caller } = await initTest(2);
+    const { maxRequests } = getRateLimit();
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < maxRequests; i++) {
       await caller.users.setAfk({ afk: i % 2 === 0 });
     }
 

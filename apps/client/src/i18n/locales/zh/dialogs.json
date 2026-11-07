@@ -93,5 +93,11 @@
   "pluginInstallDocsNote": "欲了解更多详情，请阅读文档：",
   "pluginInstallConfirmBtn": "安装插件",
   "pluginInstallConfirmCountdown": "等待 ({{seconds}}s)",
-  "searchTruncated": "仅显示最近的匹配结果。请细化搜索条件以缩小范围。"
+  "searchTruncated": "仅显示最近的匹配结果。请细化搜索条件以缩小范围。",
+  "screenShareTitle": "共享屏幕",
+  "screenShareMessage": "接下来你将选择要共享的屏幕或窗口。",
+  "shareSystemAudio": "共享系统音频",
+  "shareSystemAudioAllNote": "即使你只选择了一个窗口，Sharkord 也会共享电脑上播放的所有声音。请将不想让别人听到的内容静音。",
+  "additionalScreenShareSettings": "其他屏幕共享设置",
+  "screenShareConfirm": "继续"
 }

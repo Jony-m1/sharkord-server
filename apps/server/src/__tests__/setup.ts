@@ -1,11 +1,12 @@
-import { Database } from 'bun:sqlite';
+import { DEFAULT_RATE_LIMITERS } from '@sharkord/shared';
+import type { Database } from 'bun:sqlite';
 import { afterAll, afterEach, beforeAll, beforeEach, mock } from 'bun:test';
 import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import fs from 'fs/promises';
 import path from 'path';
-import { migrateDatabase } from '../db/migrate';
 import { clearAfkForTests } from '../helpers/afk';
 import { DATA_PATH } from '../helpers/paths';
+import { setRateLimits } from '../helpers/rate-limits';
 import { clearTrackedTimeForTests } from '../helpers/time-tracking';
 import { clearVoiceMoveGrantsForTests } from '../helpers/voice-move-grants';
 import { createHttpServer } from '../http';
@@ -16,19 +17,16 @@ import { VoiceRuntime } from '../runtimes/voice';
 import { loadMediasoup } from '../utils/mediasoup';
 import { clearRateLimitersForTests } from '../utils/rate-limiters/rate-limiter';
 import { clearUserSocketsForTests } from '../utils/wss';
-import { DRIZZLE_PATH, setTestDb } from './mock-db';
-import { seedTestDb } from './seed';
+import { createTestSqlite, setTestDb } from './mock-db';
 
 /**
  * Global test setup - creates a fresh isolated database before each test.
  * This ensures tests don't interfere with each other.
  *
  * The database is:
- * 1. Created in-memory (fast, isolated)
- * 2. Migrated (applies schema)
- * 3. Seeded (with test data)
- * 4. Set as the mocked db (via setTestDb)
- * 5. Cleaned up after the test
+ * 1. Copied in-memory from the template mock-db.ts migrated and seeded once (fast, isolated)
+ * 2. Set as the mocked db (via setTestDb)
+ * 3. Cleaned up after the test
  */
 
 const DISABLE_CONSOLE = true;
@@ -79,6 +77,16 @@ let tdb: BunSQLiteDatabase;
 let sqlite: Database | null = null;
 let testsBaseUrl: string;
 
+// bun's node:http server drops a pooled keep alive socket on its own timer, and with tests
+// firing requests back to back the next fetch lands on the dead socket as an ECONNRESET
+const originalFetch = globalThis.fetch;
+
+globalThis.fetch = Object.assign(
+  (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
+    originalFetch(input, { ...init, keepalive: false }),
+  originalFetch
+);
+
 beforeAll(async () => {
   const server = await createHttpServer(0);
   const address = server.address();
@@ -96,6 +104,7 @@ beforeEach(async () => {
   testLogs.length = 0;
 
   clearRateLimitersForTests();
+  setRateLimits(DEFAULT_RATE_LIMITERS);
   clearVoiceMoveGrantsForTests();
   VoiceRuntime.clearServerMutesForTests();
   clearUserSocketsForTests();
@@ -110,15 +119,11 @@ beforeEach(async () => {
     }
   }
 
-  sqlite = new Database(':memory:', { create: true, strict: true });
-
+  sqlite = createTestSqlite();
   tdb = drizzle({ client: sqlite });
 
   // updates the mocked db to use this new test database
   setTestDb(tdb);
-
-  await migrateDatabase(sqlite, tdb, DRIZZLE_PATH);
-  await seedTestDb(tdb);
 });
 
 afterEach(async () => {

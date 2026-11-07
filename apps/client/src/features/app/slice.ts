@@ -1,4 +1,5 @@
 import { isCallChatScreenLayout } from '@/helpers/call-chat-layout';
+import { isDesktopApp } from '@/helpers/is-desktop-app';
 import {
   getLocalStorageItem,
   getLocalStorageItemAsJSON,
@@ -24,15 +25,18 @@ export interface TAppState {
   threadParentMessageId: number | undefined;
   threadChannelId: number | undefined;
   autoJoinLastChannel: boolean;
+  freezeAnimatedAvatars: boolean;
+  convertAsciiEmoji: boolean;
   micMode: MicMode;
   hotkeysEnabled: boolean;
   selectedDmChannelId: number | undefined;
   selectedThread: TThreadTarget | undefined;
   selectedThreadFromConversation: boolean;
-  browserNotifications: boolean;
-  browserNotificationsForMentions: boolean;
-  browserNotificationsForDms: boolean;
-  browserNotificationsForReplies: boolean;
+  notifyAllMessages: boolean;
+  notifyMentionsOnly: boolean;
+  notifyDms: boolean;
+  notifyReplies: boolean;
+  notifyPlugins: boolean;
   notificationSounds: boolean;
   messageSentSound: boolean;
   mutedChannelIds: number[];
@@ -57,32 +61,43 @@ const initialState: TAppState = {
     LocalStorageKey.AUTO_JOIN_LAST_CHANNEL,
     false
   ),
+  freezeAnimatedAvatars: getLocalStorageItemBool(
+    LocalStorageKey.FREEZE_ANIMATED_AVATARS,
+    false
+  ),
+  convertAsciiEmoji: getLocalStorageItemBool(
+    LocalStorageKey.CONVERT_ASCII_EMOJI,
+    true
+  ),
   micMode:
     getLocalStorageItem(LocalStorageKey.MIC_MODE) === MicMode.PUSH_TO_TALK
       ? MicMode.PUSH_TO_TALK
       : MicMode.OPEN,
-  hotkeysEnabled: getLocalStorageItemBool(
-    LocalStorageKey.HOTKEYS_ENABLED,
-    false
-  ),
+  hotkeysEnabled:
+    isDesktopApp() ||
+    getLocalStorageItemBool(LocalStorageKey.HOTKEYS_ENABLED, false),
   selectedDmChannelId: undefined,
   selectedThread: undefined,
   selectedThreadFromConversation: false,
-  browserNotifications: getLocalStorageItemBool(
-    LocalStorageKey.BROWSER_NOTIFICATIONS,
+  notifyAllMessages: getLocalStorageItemBool(
+    LocalStorageKey.NOTIFY_ALL_MESSAGES,
+    isDesktopApp()
+  ),
+  notifyMentionsOnly: getLocalStorageItemBool(
+    LocalStorageKey.NOTIFY_MENTIONS_ONLY,
     false
   ),
-  browserNotificationsForMentions: getLocalStorageItemBool(
-    LocalStorageKey.BROWSER_NOTIFICATIONS_FOR_MENTIONS,
-    false
+  notifyDms: getLocalStorageItemBool(
+    LocalStorageKey.NOTIFY_DMS,
+    isDesktopApp()
   ),
-  browserNotificationsForDms: getLocalStorageItemBool(
-    LocalStorageKey.BROWSER_NOTIFICATIONS_FOR_DMS,
-    false
+  notifyReplies: getLocalStorageItemBool(
+    LocalStorageKey.NOTIFY_REPLIES,
+    isDesktopApp()
   ),
-  browserNotificationsForReplies: getLocalStorageItemBool(
-    LocalStorageKey.BROWSER_NOTIFICATIONS_FOR_REPLIES,
-    false
+  notifyPlugins: getLocalStorageItemBool(
+    LocalStorageKey.NOTIFY_PLUGINS,
+    isDesktopApp()
   ),
   notificationSounds: getLocalStorageItemBool(
     LocalStorageKey.NOTIFICATION_SOUNDS,
@@ -153,6 +168,12 @@ export const appSlice = createSlice({
     setAutoJoinLastChannel: (state, action: PayloadAction<boolean>) => {
       state.autoJoinLastChannel = action.payload;
     },
+    setFreezeAnimatedAvatars: (state, action: PayloadAction<boolean>) => {
+      state.freezeAnimatedAvatars = action.payload;
+    },
+    setConvertAsciiEmoji: (state, action: PayloadAction<boolean>) => {
+      state.convertAsciiEmoji = action.payload;
+    },
     setMicMode: (state, action: PayloadAction<MicMode>) => {
       state.micMode = action.payload;
     },
@@ -183,23 +204,20 @@ export const appSlice = createSlice({
     ) => {
       state.selectedThreadFromConversation = action.payload;
     },
-    setBrowserNotifications: (state, action: PayloadAction<boolean>) => {
-      state.browserNotifications = action.payload;
+    setNotifyAllMessages: (state, action: PayloadAction<boolean>) => {
+      state.notifyAllMessages = action.payload;
     },
-    setBrowserNotificationsForMentions: (
-      state,
-      action: PayloadAction<boolean>
-    ) => {
-      state.browserNotificationsForMentions = action.payload;
+    setNotifyMentionsOnly: (state, action: PayloadAction<boolean>) => {
+      state.notifyMentionsOnly = action.payload;
     },
-    setBrowserNotificationsForDms: (state, action: PayloadAction<boolean>) => {
-      state.browserNotificationsForDms = action.payload;
+    setNotifyDms: (state, action: PayloadAction<boolean>) => {
+      state.notifyDms = action.payload;
     },
-    setBrowserNotificationsForReplies: (
-      state,
-      action: PayloadAction<boolean>
-    ) => {
-      state.browserNotificationsForReplies = action.payload;
+    setNotifyReplies: (state, action: PayloadAction<boolean>) => {
+      state.notifyReplies = action.payload;
+    },
+    setNotifyPlugins: (state, action: PayloadAction<boolean>) => {
+      state.notifyPlugins = action.payload;
     },
     setNotificationSounds: (state, action: PayloadAction<boolean>) => {
       state.notificationSounds = action.payload;

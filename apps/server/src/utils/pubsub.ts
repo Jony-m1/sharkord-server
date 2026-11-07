@@ -328,3 +328,5 @@ class PubSub {
 }
 
 export const pubsub = new PubSub();
+
+export type { Events as TPubSubEvents };

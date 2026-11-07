@@ -53,8 +53,9 @@ describe('VoiceRuntime destroy', () => {
 
     const left: number[] = [];
 
+    // a member of the call hears everyone leave, whoever else can see the channel
     const subscription = pubsub
-      .subscribe(ServerEvents.USER_LEAVE_VOICE)
+      .subscribeFor(7, ServerEvents.USER_LEAVE_VOICE)
       .subscribe({
         next: ({ userId, channelId }) => {
           if (channelId === runtime.id) left.push(userId);
@@ -490,7 +491,9 @@ describe('VoiceRuntime call times', () => {
     clock.mockReturnValue(1_050_000);
     runtime.addUser(8, { micMuted: false, soundMuted: false });
 
-    expect(VoiceRuntime.getVoiceMap()[runtime.id]).toMatchObject({
+    expect(
+      VoiceRuntime.getVoiceMap(new Set([runtime.id]))[runtime.id]
+    ).toMatchObject({
       startedAt: 1_000_000,
       joinedAt: { 7: 1_000_000, 8: 1_050_000 }
     });

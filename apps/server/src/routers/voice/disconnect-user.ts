@@ -1,21 +1,16 @@
 import { Permission } from '@sharkord/shared';
 import { z } from 'zod';
-import { config } from '../../config';
 import { getPublicUserById } from '../../db/queries/users';
 import { assertCanActOnUser } from '../../helpers/assert-can-act-on-user';
 import { isInHiddenVoiceCall } from '../../helpers/is-in-hidden-voice-call';
 import { disconnectVoiceUser } from '../../helpers/voice-moderation';
 import { logger } from '../../logger';
 import { invariant } from '../../utils/invariant';
-import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
+import { protectedProcedure } from '../../utils/trpc';
 
-// shares the move limiter and permission: taking someone out of a call is the same power as
+// shares the move permission: taking someone out of a call is the same power as
 // moving them, and a separate permission would need labels in every locale
-const disconnectUserRoute = rateLimitedProcedure(protectedProcedure, {
-  maxRequests: config.rateLimiters.moveMembers.maxRequests,
-  windowMs: config.rateLimiters.moveMembers.windowMs,
-  logLabel: 'disconnectUser'
-})
+const disconnectUserRoute = protectedProcedure
   .input(
     z.object({
       userId: z.number().int().positive()

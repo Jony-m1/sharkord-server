@@ -2,6 +2,7 @@ export * from './locales';
 export * from './metrics';
 export * from './permissions';
 export * from './storage';
+export * from './supported-locales';
 export * from './upload';
 
 export const DEFAULT_MESSAGES_LIMIT = 100;
@@ -26,9 +27,9 @@ export enum MessageNodeType {
 
 export enum DisconnectCode {
   UNEXPECTED = 1006,
-  KICKED = 40000,
-  BANNED = 40001,
-  SERVER_SHUTDOWN = 40002
+  KICKED = 4000,
+  BANNED = 4001,
+  SERVER_SHUTDOWN = 4002
 }
 
 export const MAX_USER_NAME_LENGTH = 24;

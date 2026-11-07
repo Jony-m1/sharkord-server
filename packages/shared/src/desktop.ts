@@ -1,0 +1,118 @@
+import type { TAppNotification, TNotificationTarget } from './notifications';
+
+export type TDesktopUnreadState = {
+  count: number;
+  mentioned: boolean;
+};
+
+export const DESKTOP_CONNECTION_STATES = [
+  'connecting',
+  'connected',
+  'signed-out',
+  'disconnected'
+] as const;
+
+export type TDesktopConnectionState =
+  (typeof DESKTOP_CONNECTION_STATES)[number];
+
+export type TDesktopHotkeyBinding = {
+  actionId: string;
+  combo: string;
+};
+
+export type TDesktopHotkeyPhase = 'down' | 'up';
+
+// systemManaged: the desktop environment owns the keys (wayland), the user approves and
+// changes them in its own settings
+export type TDesktopHotkeyCapabilities = {
+  keyUp: boolean;
+  systemManaged: boolean;
+};
+
+export const DESKTOP_HOTKEY_ERROR_REASONS = [
+  'unsupported',
+  'needs-modifier',
+  'taken',
+  'declined'
+] as const;
+
+export type TDesktopHotkeyErrorReason =
+  (typeof DESKTOP_HOTKEY_ERROR_REASONS)[number];
+
+export type TDesktopHotkeyError = {
+  actionId: string;
+  reason: TDesktopHotkeyErrorReason;
+};
+
+export type TDesktopBridge = {
+  getServerListVisible: () => Promise<boolean>;
+  onServerListVisibleChange: (
+    listener: (visible: boolean) => void
+  ) => () => void;
+  toggleServerList: () => Promise<void>;
+  openSettings: () => Promise<void>;
+  setUnreadState: (state: TDesktopUnreadState) => void;
+  setConnectionState: (state: TDesktopConnectionState) => void;
+  setVoiceActive: (active: boolean) => void;
+  startSystemAudio: () => Promise<boolean>;
+  stopSystemAudio: () => Promise<void>;
+  showNotification: (notification: TAppNotification) => void;
+  setHotkeys: (
+    bindings: TDesktopHotkeyBinding[]
+  ) => Promise<TDesktopHotkeyError[]>;
+  getHotkeyCapabilities: () => Promise<TDesktopHotkeyCapabilities>;
+  onHotkey: (
+    listener: (actionId: string, phase: TDesktopHotkeyPhase) => void
+  ) => () => void;
+  onHotkeyErrors: (
+    listener: (errors: TDesktopHotkeyError[]) => void
+  ) => () => void;
+  onNotificationClick: (
+    listener: (target: TNotificationTarget) => void
+  ) => () => void;
+};
+
+// must match exactly between the desktop app and a server's client
+// this will be changed in the future for a better versioning scheme
+// a bump splits every desktop app from every server on another version, so only bump when
+// there is no way around it. if a change can stay compatible without being super hacky, do
+// that instead and list the cleanup it leaves behind below, so it ships with the next bump
+//
+// pending for version 2:
+// - remove 'needs-modifier' from DESKTOP_HOTKEY_ERROR_REASONS and its client translation,
+//   the desktop app no longer sends it but version 1 apps still do
+export const DESKTOP_BRIDGE_VERSION = 2;
+
+// this should NEVER change, it is how every client and desktop app of any version find
+export type TDesktopEntry = {
+  version: number;
+  connect: (clientVersion: number) => TDesktopBridge | undefined;
+};
+
+// server-outdated: the server's client is older than the desktop app,
+// app-outdated: the desktop app is older than the server's client
+export const DESKTOP_MISMATCHES = ['server-outdated', 'app-outdated'] as const;
+
+export type TDesktopMismatch = (typeof DESKTOP_MISMATCHES)[number];
+
+export const getDesktopMismatch = (
+  desktopVersion: number,
+  clientVersion: number
+): TDesktopMismatch | undefined => {
+  if (clientVersion < desktopVersion) {
+    return 'server-outdated';
+  }
+
+  if (clientVersion > desktopVersion) {
+    return 'app-outdated';
+  }
+
+  return undefined;
+};
+
+export const DESKTOP_PROTOCOL = 'sharkord';
+
+export const DESKTOP_ADD_SERVER_ACTION = 'add-server';
+
+export const getDesktopAddServerLink = (serverUrl: string) =>
+  `${DESKTOP_PROTOCOL}://${DESKTOP_ADD_SERVER_ACTION}?url=${encodeURIComponent(serverUrl)}`;

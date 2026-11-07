@@ -2,6 +2,7 @@ import {
   Permission,
   STORAGE_UNLIMITED_FILE_SIZE,
   UploadHeaders,
+  UploadPurpose,
   type TTempFile
 } from '@sharkord/shared';
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
@@ -11,9 +12,9 @@ import net from 'net';
 import path from 'path';
 import { login, uploadFile } from '../../__tests__/helpers';
 import { tdb, testsBaseUrl } from '../../__tests__/setup';
-import { config } from '../../config';
 import { rolePermissions, settings, users } from '../../db/schema';
 import { TMP_PATH, UPLOADS_PATH } from '../../helpers/paths';
+import { getRateLimit } from '../../helpers/rate-limits';
 import { sanitizeFileName } from '../helpers';
 
 const getMockFile = (content: string): File => {
@@ -21,6 +22,22 @@ const getMockFile = (content: string): File => {
 
   return new File([blob], 'test-upload.txt', { type: 'text/plain' });
 };
+
+const getMockImage = (): File => {
+  const blob = new Blob(['fake image bytes'], { type: 'image/png' });
+
+  return new File([blob], 'avatar.png', { type: 'image/png' });
+};
+
+const revokeFromDefaultRole = async (permission: Permission) =>
+  tdb
+    .delete(rolePermissions)
+    .where(
+      and(
+        eq(rolePermissions.roleId, 2),
+        eq(rolePermissions.permission, permission)
+      )
+    );
 
 describe('/upload', () => {
   let token: string;
@@ -104,14 +121,7 @@ describe('/upload', () => {
     const response = await login('testuser', 'password123');
     const data: any = await response.json();
 
-    await tdb
-      .delete(rolePermissions)
-      .where(
-        and(
-          eq(rolePermissions.roleId, 2),
-          eq(rolePermissions.permission, Permission.UPLOAD_FILES)
-        )
-      );
+    await revokeFromDefaultRole(Permission.UPLOAD_FILES);
 
     const file = getMockFile('no permission to upload this');
     const uploadResponse = await uploadFile(file, data.token);
@@ -119,8 +129,77 @@ describe('/upload', () => {
     expect(uploadResponse.status).toBe(403);
   });
 
+  // a profile image is gated by SET_PROFILE_IMAGE, so losing UPLOAD_FILES must not
+  // also take away the ability to change an avatar, and sending it as an attachment
+  // is still refused on send-message
+  test('should allow a profile image from a user without UPLOAD_FILES', async () => {
+    const response = await login('testuser', 'password123');
+    const data: any = await response.json();
+
+    await revokeFromDefaultRole(Permission.UPLOAD_FILES);
+
+    const uploadResponse = await uploadFile(getMockImage(), data.token, {
+      [UploadHeaders.PURPOSE]: UploadPurpose.PROFILE_IMAGE
+    });
+
+    expect(uploadResponse.status).toBe(200);
+
+    const tempFile = (await uploadResponse.json()) as TTempFile;
+
+    expect(tempFile.userId).toBe(2);
+  });
+
+  test('should reject a message upload that declares its purpose', async () => {
+    const response = await login('testuser', 'password123');
+    const data: any = await response.json();
+
+    await revokeFromDefaultRole(Permission.UPLOAD_FILES);
+
+    const uploadResponse = await uploadFile(
+      getMockFile('explicit message upload without permission'),
+      data.token,
+      {
+        [UploadHeaders.PURPOSE]: UploadPurpose.MESSAGE
+      }
+    );
+
+    expect(uploadResponse.status).toBe(403);
+  });
+
+  test('should reject a profile image without SET_PROFILE_IMAGE', async () => {
+    const response = await login('testuser', 'password123');
+    const data: any = await response.json();
+
+    await revokeFromDefaultRole(Permission.SET_PROFILE_IMAGE);
+
+    const uploadResponse = await uploadFile(getMockImage(), data.token, {
+      [UploadHeaders.PURPOSE]: UploadPurpose.PROFILE_IMAGE
+    });
+
+    expect(uploadResponse.status).toBe(403);
+
+    const body: any = await uploadResponse.json();
+
+    expect(body).toHaveProperty(
+      'error',
+      'You do not have permission to change your profile image'
+    );
+  });
+
+  test('should reject an unknown upload purpose', async () => {
+    const uploadResponse = await uploadFile(
+      getMockFile('unknown purpose'),
+      token,
+      {
+        [UploadHeaders.PURPOSE]: 'not-a-purpose'
+      }
+    );
+
+    expect(uploadResponse.status).toBe(400);
+  });
+
   test('should rate limit excessive upload attempts', async () => {
-    const { maxRequests } = config.rateLimiters.upload;
+    const { maxRequests } = getRateLimit();
     const statuses: number[] = [];
 
     for (let i = 0; i < maxRequests + 1; i++) {
@@ -386,49 +465,48 @@ describe('/upload', () => {
     expect(raw).toContain('400 Bad Request');
   });
 
-  // the client cancels by closing the connection part way; what had arrived must not be left
-  // on the disk
-  test('should delete what arrived of an upload cancelled part way', async () => {
-    const before = await fs.readdir(UPLOADS_PATH);
-    const { port, hostname } = new URL(testsBaseUrl);
+  test('should delete the partial file when the client disconnects mid upload', async () => {
+    const before = new Set(await fs.readdir(UPLOADS_PATH));
+    const getNewFiles = async () =>
+      (await fs.readdir(UPLOADS_PATH)).filter((name) => !before.has(name));
 
-    await new Promise<void>((resolve) => {
-      const socket = net.connect(Number(port), hostname, () => {
-        socket.write(
-          [
-            'POST /upload HTTP/1.1',
-            `Host: ${hostname}:${port}`,
-            'Content-Type: application/octet-stream',
-            `${UploadHeaders.ORIGINAL_NAME}: cancelled.zip`,
-            `${UploadHeaders.TOKEN}: ${token}`,
-            'Content-Length: 100000',
-            '',
-            'x'.repeat(5000)
-          ].join('\r\n')
-        );
-        setTimeout(() => {
-          socket.destroy();
-          resolve();
-        }, 200);
-      });
-    });
+    // the handler only opens the file after its async checks, so both sides are awaited
+    // rather than slept on
+    const waitFor = async (condition: () => Promise<boolean>) => {
+      const deadline = Date.now() + 5000;
 
-    // the server notices the closed connection on its own schedule
-    for (let i = 0; i < 20; i++) {
-      const leftover = (await fs.readdir(UPLOADS_PATH)).filter(
-        (name) => !before.includes(name)
-      );
+      while (!(await condition())) {
+        if (Date.now() > deadline) throw new Error('condition never held');
 
-      if (leftover.length === 0) break;
+        await Bun.sleep(10);
+      }
+    };
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
+    const { port } = new URL(testsBaseUrl);
+    const socket = net.connect(Number(port), 'localhost');
 
-    const leftover = (await fs.readdir(UPLOADS_PATH)).filter(
-      (name) => !before.includes(name)
+    await new Promise((resolve) => socket.once('connect', resolve));
+
+    socket.write(
+      [
+        'POST /upload HTTP/1.1',
+        'Host: localhost',
+        'Content-Type: application/octet-stream',
+        'Content-Length: 100000',
+        `${UploadHeaders.ORIGINAL_NAME}: abandoned.txt`,
+        `${UploadHeaders.TOKEN}: ${token}`,
+        '',
+        'only the start of the body'
+      ].join('\r\n')
     );
 
-    expect(leftover).toEqual([]);
+    await waitFor(async () => (await getNewFiles()).length > 0);
+
+    socket.destroy();
+
+    await waitFor(async () => (await getNewFiles()).length === 0);
+
+    expect(await getNewFiles()).toEqual([]);
   });
 
   test('should reject a non-numeric content-length', async () => {

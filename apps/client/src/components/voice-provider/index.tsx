@@ -18,6 +18,10 @@ import { playSound } from '@/helpers/sounds';
 
 import { voiceLogger } from '@/helpers/browser-logger';
 import {
+  getDesktopSystemAudioTrack,
+  stopDesktopSystemAudio
+} from '@/helpers/desktop-system-audio';
+import {
   getRestrictOwnAudioSupport,
   getSuppressLocalAudioPlaybackSupport
 } from '@/helpers/get-display-media-support';
@@ -75,7 +79,10 @@ import { useLocalStreams } from './hooks/use-local-streams';
 import { useRemoteStreams } from './hooks/use-remote-streams';
 import { useTransportStats } from './hooks/use-transport-stats';
 import { useTransports } from './hooks/use-transports';
-import { useVoiceControls } from './hooks/use-voice-controls';
+import {
+  useVoiceControls,
+  type TScreenShareOptions
+} from './hooks/use-voice-controls';
 import { useVoiceEvents } from './hooks/use-voice-events';
 import { useVoiceHotkeys } from './hooks/use-voice-hotkeys';
 import { SIMULCAST_WEBCAM_MAX_BITRATE } from './statics';
@@ -852,6 +859,8 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   const stopScreenShareStream = useCallback(() => {
     voiceLogger.info('screen: stopping');
 
+    stopDesktopSystemAudio();
+
     localScreenShareStream?.getTracks().forEach((track) => {
       voiceLogger.info('screen: stopping track', {
         trackId: track.id,
@@ -882,61 +891,69 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
 
   // only the picker and the local preview, so your own card and the start sound follow the
   // pick instead of waiting for both produce round trips
-  const acquireScreenShareStream = useCallback(async () => {
-    voiceLogger.info('screen: starting');
-    const canRestrictOwnAudio = getRestrictOwnAudioSupport();
-    const canSuppressLocalAudioPlayback =
-      getSuppressLocalAudioPlaybackSupport();
+  const acquireScreenShareStream = useCallback(
+    async (options?: TScreenShareOptions) => {
+      voiceLogger.info('screen: starting', options);
+      const screenSettings = options?.settings ?? devices;
+      const wantsSystemAudio = options?.systemAudio ?? true;
+      const canRestrictOwnAudio = getRestrictOwnAudioSupport();
+      const canSuppressLocalAudioPlayback =
+        getSuppressLocalAudioPlaybackSupport();
 
-    const displayMediaConstraints: MediaStreamConstraints = {
-      video: {
-        ...getResWidthHeight(devices?.screenResolution),
-        frameRate: devices?.screenFramerate,
-        // @ts-expect-error - display capture only, not in MediaTrackConstraints
-        cursor: devices.screenCursor
-      },
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-        channelCount: 2,
-        sampleRate: 48000,
-        // @ts-expect-error - experimental, not in types yet
-        suppressLocalAudioPlayback: canSuppressLocalAudioPlayback
-          ? (devices.suppressLocalAudioPlayback ?? false)
-          : undefined,
-        restrictOwnAudio: canRestrictOwnAudio
-          ? (devices.restrictOwnAudio ?? false)
-          : undefined
+      const displayMediaConstraints: MediaStreamConstraints = {
+        video: {
+          ...getResWidthHeight(screenSettings.screenResolution),
+          frameRate: screenSettings.screenFramerate,
+          // @ts-expect-error - display capture only, not in MediaTrackConstraints
+          cursor: screenSettings.screenCursor
+        },
+        audio: wantsSystemAudio && {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 2,
+          sampleRate: 48000,
+          // @ts-expect-error - experimental, not in types yet
+          suppressLocalAudioPlayback: canSuppressLocalAudioPlayback
+            ? (screenSettings.suppressLocalAudioPlayback ?? false)
+            : undefined,
+          restrictOwnAudio: canRestrictOwnAudio
+            ? (screenSettings.restrictOwnAudio ?? false)
+            : undefined
+        }
+      };
+
+      voiceLogger.info('screen: requesting display media', {
+        constraints: displayMediaConstraints
+      });
+
+      const stream = await navigator.mediaDevices.getDisplayMedia(
+        displayMediaConstraints
+      );
+
+      if (wantsSystemAudio && stream.getAudioTracks().length === 0) {
+        const systemAudioTrack = await getDesktopSystemAudioTrack();
+
+        if (systemAudioTrack) {
+          stream.addTrack(systemAudioTrack);
+        }
       }
-    };
 
-    voiceLogger.info('screen: requesting display media', {
-      constraints: displayMediaConstraints
-    });
+      voiceLogger.info('screen: stream obtained', {
+        videoTrackId: stream.getVideoTracks()[0]?.id,
+        hasAudio: stream.getAudioTracks().length > 0
+      });
+      setLocalScreenShare(stream);
 
-    const stream = await navigator.mediaDevices.getDisplayMedia(
-      displayMediaConstraints
-    );
-
-    voiceLogger.info('screen: stream obtained', {
-      videoTrackId: stream.getVideoTracks()[0]?.id,
-      hasAudio: stream.getAudioTracks().length > 0
-    });
-    setLocalScreenShare(stream);
-
-    return stream;
-  }, [
-    setLocalScreenShare,
-    devices.screenResolution,
-    devices.screenFramerate,
-    devices.restrictOwnAudio,
-    devices.suppressLocalAudioPlayback,
-    devices.screenCursor
-  ]);
+      return stream;
+    },
+    [setLocalScreenShare, devices]
+  );
 
   const publishScreenShareStream = useCallback(
-    async (stream: MediaStream) => {
+    async (stream: MediaStream, options?: TScreenShareOptions) => {
+      const screenSettings = options?.settings ?? devices;
+
       try {
         const videoTrack = stream.getVideoTracks()[0];
         const audioTrack = stream.getAudioTracks()[0];
@@ -948,19 +965,20 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
             settings: videoTrack.getSettings()
           });
 
-          videoTrack.contentHint = 'detail';
+          videoTrack.contentHint = screenSettings.screenContentHint;
 
           let preferredCodec: RtpCodecCapability | undefined;
 
           if (
             !simulcastEnabled &&
-            devices.screenCodec &&
-            devices.screenCodec !== VideoCodec.AUTO &&
+            screenSettings.screenCodec &&
+            screenSettings.screenCodec !== VideoCodec.AUTO &&
             routerRtpCapabilities.current?.codecs
           ) {
             preferredCodec = routerRtpCapabilities.current.codecs.find(
               (c) =>
-                c.mimeType.toLowerCase() === devices.screenCodec.toLowerCase()
+                c.mimeType.toLowerCase() ===
+                screenSettings.screenCodec.toLowerCase()
             );
 
             if (preferredCodec) {
@@ -970,7 +988,8 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
             }
           }
 
-          const maxBitrateKbps = devices.screenBitrate ?? DEFAULT_BITRATE;
+          const maxBitrateKbps =
+            screenSettings.screenBitrate ?? DEFAULT_BITRATE;
           const simulcastCodec = simulcastEnabled
             ? getSimulcastCodec(routerRtpCapabilities.current)
             : undefined;
@@ -1062,6 +1081,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
 
           videoTrack.onended = () => {
             voiceLogger.info('screen: track ended, cleaning up');
+            stopDesktopSystemAudio();
 
             stream.getTracks().forEach((track) => {
               track.stop();
@@ -1133,6 +1153,8 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
           throw new Error('No video track obtained for screen share');
         }
       } catch (error) {
+        stopDesktopSystemAudio();
+
         localScreenShareAudioProducer.current?.close();
         localScreenShareAudioProducer.current = undefined;
         localScreenShareProducer.current?.close();
@@ -1157,8 +1179,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       localScreenShareAudioProducer,
       producerTransport,
       setScreenShareProducer,
-      devices.screenCodec,
-      devices.screenBitrate,
+      devices,
       simulcastEnabled
     ]
   );
@@ -1224,17 +1245,20 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
 
         deviceRtpCapabilities.current = recvRtpCapabilities;
 
-        // the send and receive transports are separate peer connections, and consuming the
-        // people already in the call needs only the receive one while the microphone needs
-        // only the send one, so each pair runs side by side
+        // the send and receive transports are separate peer connections, so they are set
+        // up side by side
         await allSettledOrThrow([
           createProducerTransport(device),
           createConsumerTransport(device)
         ]);
-        await allSettledOrThrow([
-          consumeExistingProducers(recvRtpCapabilities),
-          startMicStream()
-        ]);
+
+        // start the microphone before consuming so firefox has an active
+        // getUserMedia capture when the recv transport gathers candidates
+        await startMicStream();
+
+        deviceRtpCapabilities.current = recvRtpCapabilities;
+
+        await consumeExistingProducers(recvRtpCapabilities);
 
         startMonitoring(producerTransport.current, consumerTransport.current);
         setConnectionStatus(ConnectionStatus.CONNECTED);

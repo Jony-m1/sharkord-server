@@ -39,7 +39,7 @@ const ContentWrapper = memo(({ userId }: TContentWrapperProps) => {
   const [currentView, setCurrentView] = useState<ModViewScreen | undefined>(
     undefined
   );
-  const { user, refetch, logins, files, messages, storage } =
+  const { user, refetch, logins, files, messages, storage, sharedIp } =
     useAdminUserInfo(userId);
 
   const contextValue = useMemo<TModViewContext>(() => {
@@ -55,12 +55,23 @@ const ContentWrapper = memo(({ userId }: TContentWrapperProps) => {
       files,
       storage,
       messages,
+      sharedIp,
       links,
       refetch,
       view: currentView,
       setView: setCurrentView
     };
-  }, [userId, refetch, files, storage, user, logins, messages, currentView]);
+  }, [
+    userId,
+    refetch,
+    files,
+    storage,
+    user,
+    logins,
+    messages,
+    sharedIp,
+    currentView
+  ]);
 
   // a refetch after a kick or a role change keeps showing what is there; only the first load,
   // with nothing to show yet, gets the placeholder

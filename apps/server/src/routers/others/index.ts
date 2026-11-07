@@ -2,11 +2,13 @@ import { t } from '../../utils/trpc';
 import { changeBannerRoute } from './change-banner';
 import { changeLogoRoute } from './change-logo';
 import { onServerSettingsUpdateRoute } from './events';
+import { getRateLimitsRoute } from './get-rate-limits';
 import { getSettingsRoute } from './get-settings';
 import { getStorageSettingsRoute } from './get-storage-settings';
 import { getUpdateRoute } from './get-update';
 import { handshakeRoute } from './handshake';
 import { joinServerRoute } from './join';
+import { updateRateLimitsRoute } from './update-rate-limits';
 import { updateServerRoute } from './update-server';
 import { updateSettingsRoute } from './update-settings';
 import { useSecretTokenRoute } from './use-secret-token';
@@ -22,5 +24,7 @@ export const othersRouter = t.router({
   useSecretToken: useSecretTokenRoute,
   getStorageSettings: getStorageSettingsRoute,
   getUpdate: getUpdateRoute,
-  updateServer: updateServerRoute
+  updateServer: updateServerRoute,
+  getRateLimits: getRateLimitsRoute,
+  updateRateLimits: updateRateLimitsRoute
 });

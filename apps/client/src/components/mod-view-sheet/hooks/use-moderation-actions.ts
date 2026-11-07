@@ -2,6 +2,7 @@ import {
   requestConfirmation,
   requestTextInput
 } from '@/features/dialogs/actions';
+import type { TSharedIp } from '@/features/server/admin/hooks';
 import { getTRPCClient } from '@/lib/trpc';
 import { getTrpcError } from '@sharkord/shared';
 import { useCallback, useMemo } from 'react';
@@ -12,6 +13,8 @@ type TUseModerationActionsOptions = {
   userId: number;
   isDeleted: boolean;
   onChange?: () => void;
+  // only the moderation view loads who else signed in from the same address
+  sharedIp?: TSharedIp;
 };
 
 // every place that moderates someone (the moderation view, the profile card, the users table)
@@ -21,7 +24,8 @@ type TUseModerationActionsOptions = {
 const useModerationActions = ({
   userId,
   isDeleted,
-  onChange
+  onChange,
+  sharedIp
 }: TUseModerationActionsOptions) => {
   const { t } = useTranslation('settings');
 
@@ -55,9 +59,23 @@ const useModerationActions = ({
       return;
     }
 
+    let warning: string | undefined;
+    let warningUserIds: number[] | undefined;
+
+    if (sharedIp && sharedIp.users.length > 0) {
+      const warningKey = sharedIp.hasMore
+        ? 'banSharedIpWarningMore'
+        : 'banSharedIpWarning';
+
+      warning = t(warningKey, { count: sharedIp.users.length });
+      warningUserIds = sharedIp.users.map(({ id }) => id);
+    }
+
     const reason = await requestTextInput({
       title: t('banTitle'),
       message: t('banMsg'),
+      warning,
+      warningUserIds,
       confirmLabel: t('banConfirm'),
       allowEmpty: true
     });
@@ -75,7 +93,7 @@ const useModerationActions = ({
     } finally {
       onChange?.();
     }
-  }, [userId, isDeleted, onChange, t]);
+  }, [userId, isDeleted, onChange, sharedIp, t]);
 
   const unban = useCallback(async () => {
     if (isDeleted) {

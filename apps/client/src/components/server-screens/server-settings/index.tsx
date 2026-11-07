@@ -1,8 +1,10 @@
 import { useAdminPlugins } from '@/features/server/admin/hooks';
 import { useCan, usePluginsEnabled } from '@/features/server/hooks';
 import { Permission } from '@sharkord/shared';
+import { type TSettingsEntry } from '@sharkord/ui';
 import {
   Blocks,
+  Gauge,
   Mail,
   Package,
   RefreshCw,
@@ -15,12 +17,12 @@ import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TServerScreenBaseProps } from '../screens';
 import { SettingsShell } from '../settings-shell';
-import type { TSettingsEntry } from '../settings-shell/types';
 import { Emojis } from './emojis';
 import { General } from './general';
 import { Invites } from './invites';
 import { PluginView } from './plugin-view';
 import { Plugins } from './plugins';
+import { RateLimits } from './rate-limits';
 import { Roles } from './roles';
 import { Storage } from './storage';
 import { Updates } from './updates';
@@ -68,6 +70,13 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
         icon: Package,
         content: <Storage />,
         permission: Permission.MANAGE_STORAGE
+      },
+      {
+        id: 'rate-limits',
+        label: t('rateLimitsTab'),
+        icon: Gauge,
+        content: <RateLimits />,
+        permission: Permission.MANAGE_SETTINGS
       },
       {
         id: 'users',

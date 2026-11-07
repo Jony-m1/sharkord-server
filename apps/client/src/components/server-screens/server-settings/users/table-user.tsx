@@ -26,7 +26,13 @@ import {
   Tooltip
 } from '@sharkord/ui';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Gavel, MoreVertical, Trash2, UserCog } from 'lucide-react';
+import {
+  Gavel,
+  MonitorSmartphone,
+  MoreVertical,
+  Trash2,
+  UserCog
+} from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { USERS_GRID_COLS } from './grid';
@@ -151,7 +157,7 @@ const TableUser = memo(({ user, refetch }: TTableUserProps) => {
         </span>
       </div>
 
-      <div className="flex min-w-0 items-center text-muted-foreground">
+      <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
         <span
           className={cn('truncate text-xs', {
             'text-green-500': status === UserStatus.ONLINE,
@@ -160,6 +166,16 @@ const TableUser = memo(({ user, refetch }: TTableUserProps) => {
         >
           {statusLabel}
         </span>
+        {user.sessionCount > 1 && (
+          <Tooltip
+            content={t('usersSessionCount', { count: user.sessionCount })}
+          >
+            <span className="flex items-center gap-0.5 text-xs">
+              <MonitorSmartphone className="h-3 w-3" />
+              {user.sessionCount}
+            </span>
+          </Tooltip>
+        )}
       </div>
 
       <div

@@ -6,11 +6,10 @@ import {
 } from '@/features/server/hooks';
 import { cn } from '@/lib/utils';
 import type { TestId } from '@sharkord/shared';
-import { Button, Tooltip } from '@sharkord/ui';
+import { Button, Tooltip, UnreadCount } from '@sharkord/ui';
 import { MessagesSquare } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UnreadCount } from '../unread-count';
 
 type TVoiceChatToggleProps = {
   channelId: number;

@@ -1,11 +1,21 @@
-import { ChannelPermission, Permission, ServerEvents } from '@sharkord/shared';
+import {
+  ChannelPermission,
+  Permission,
+  RateLimiter,
+  ServerEvents
+} from '@sharkord/shared';
 import { z } from 'zod';
+import { publishVoicePresence } from '../../db/publishers';
+import { channelUserCan } from '../../db/queries/channels';
 import { getCurrentVoiceRuntime } from '../../helpers/get-current-voice-runtime';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
 
 const updateVoiceStateRoute = protectedProcedure
+  .meta({
+    rateLimit: RateLimiter.VOICE_STATE
+  })
   .input(
     z.object({
       micMuted: z.boolean().optional(),
@@ -25,10 +35,18 @@ const updateVoiceStateRoute = protectedProcedure
       Permission.SHARE_SCREEN
     );
 
+    // a moderator can move someone into a channel they cannot see, and they must still be
+    // able to talk there, so the view permission is not required
     const [canSpeak, canUseWebcam, canShareScreenHere] = await Promise.all([
-      ctx.hasChannelPermission(channelId, ChannelPermission.SPEAK),
-      ctx.hasChannelPermission(channelId, ChannelPermission.WEBCAM),
-      ctx.hasChannelPermission(channelId, ChannelPermission.SHARE_SCREEN)
+      channelUserCan(channelId, ctx.user.id, ChannelPermission.SPEAK, {
+        ignoreView: true
+      }),
+      channelUserCan(channelId, ctx.user.id, ChannelPermission.WEBCAM, {
+        ignoreView: true
+      }),
+      channelUserCan(channelId, ctx.user.id, ChannelPermission.SHARE_SCREEN, {
+        ignoreView: true
+      })
     ]);
 
     if (!canSpeak) {
@@ -58,7 +76,7 @@ const updateVoiceStateRoute = protectedProcedure
 
     const newState = runtime.getUserState(ctx.user.id);
 
-    ctx.pubsub.publish(ServerEvents.USER_VOICE_STATE_UPDATE, {
+    await publishVoicePresence(runtime, ServerEvents.USER_VOICE_STATE_UPDATE, {
       channelId: channelId,
       userId: ctx.user.id,
       state: newState

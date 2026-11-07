@@ -3,7 +3,9 @@ import { addRoleRoute } from './add-role';
 import { banRoute } from './ban';
 import { changeAvatarRoute } from './change-avatar';
 import { changeBannerRoute } from './change-banner';
+import { deleteOwnAccountRoute } from './delete-own-account';
 import { deleteUserRoute } from './delete-user';
+import { disconnectSessionRoute } from './disconnect-session';
 import {
   onUserCreateRoute,
   onUserDeleteRoute,
@@ -13,6 +15,7 @@ import {
 } from './events';
 import { getTimeStatsRoute } from './get-time-stats';
 import { getUserInfoRoute } from './get-user-info';
+import { getUserSessionsRoute } from './get-user-sessions';
 import { getUsersRoute } from './get-users';
 import { kickRoute } from './kick';
 import { removeRoleRoute } from './remove-role';
@@ -31,11 +34,14 @@ export const usersRouter = t.router({
   getInfo: getUserInfoRoute,
   getTimeStats: getTimeStatsRoute,
   setAfk: setAfkRoute,
+  getSessions: getUserSessionsRoute,
   getAll: getUsersRoute,
   kick: kickRoute,
+  disconnectSession: disconnectSessionRoute,
   ban: banRoute,
   unban: unbanRoute,
   delete: deleteUserRoute,
+  deleteOwn: deleteOwnAccountRoute,
   onJoin: onUserJoinRoute,
   onLeave: onUserLeaveRoute,
   onUpdate: onUserUpdateRoute,

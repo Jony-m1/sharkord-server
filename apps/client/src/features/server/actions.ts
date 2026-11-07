@@ -14,6 +14,7 @@ import {
   type TServerInfo
 } from '@sharkord/shared';
 import { TRPCClientError } from '@trpc/client';
+import { throttle } from 'lodash-es';
 import { toast } from 'sonner';
 import { appSliceActions } from '../app/slice';
 import { openDialog } from '../dialogs/actions';
@@ -25,6 +26,7 @@ import {
   currentVoiceChannelIdSelector,
   isChannelTextVisibleByIdSelector
 } from './channels/selectors';
+import { startFileTokenRefresh, stopFileTokenRefresh } from './files/actions';
 import {
   processPluginComponents,
   setPluginCapabilityAccess,
@@ -202,7 +204,8 @@ export const joinServer = async (handshakeHash: string, password?: string) => {
   const data = await trpc.others.joinServer.query({
     handshakeHash,
     password,
-    locale: i18n.resolvedLanguage as TLocale
+    locale: i18n.resolvedLanguage as TLocale,
+    clientVersion: VITE_APP_VERSION
   });
 
   logDebug('joinServer', data);
@@ -219,6 +222,7 @@ export const joinServer = async (handshakeHash: string, password?: string) => {
 
   store.dispatch(serverSliceActions.setInitialData(data));
 
+  startFileTokenRefresh();
   setPluginCommands(data.commands);
   setPluginCapabilityAccess(data.pluginCapabilityAccess);
 
@@ -234,6 +238,7 @@ export const joinServer = async (handshakeHash: string, password?: string) => {
 };
 
 export const disconnectFromServer = () => {
+  stopFileTokenRefresh();
   cleanup();
   unsubscribeFromServer?.();
 };
@@ -408,6 +413,23 @@ export const markChannelAsRead = async (
       );
     }
   }
+};
+
+const MARK_AS_READ_THROTTLE_MS = 2_000;
+const markAsReadThrottles = new Map<number, () => void>();
+
+export const markVisibleChannelAsRead = (channelId: number) => {
+  let markAsRead = markAsReadThrottles.get(channelId);
+
+  if (!markAsRead) {
+    markAsRead = throttle(() => {
+      markChannelAsRead(channelId, true);
+    }, MARK_AS_READ_THROTTLE_MS);
+
+    markAsReadThrottles.set(channelId, markAsRead);
+  }
+
+  markAsRead();
 };
 
 window.useToken = async (token: string) => {

@@ -1,12 +1,19 @@
 import type { TConversation, TConversationKey } from '@/types';
 import {
   ChannelPermission,
+  DisconnectCode,
   hasMention,
+  type Permission,
   type TDirectMessageConversation,
+  type TFile,
   type TFollowedThread,
-  type TJoinedMessage
+  type TJoinedEmoji,
+  type TJoinedMessage,
+  type TJoinedPublicUser,
+  type TJoinedRole
 } from '@sharkord/shared';
 import type { channelPermissionsSelector } from './channels/selectors';
+import type { TDisconnectInfo } from './types';
 
 const canViewChannel = (
   channel: { id: number; private: boolean },
@@ -178,12 +185,73 @@ const upsertDirectMessage = (
   ];
 };
 
+const rolesCan = (
+  roles: TJoinedRole[],
+  isOwner: boolean,
+  permission: Permission | Permission[]
+) => {
+  if (isOwner) return true;
+
+  const permissionsToCheck = Array.isArray(permission)
+    ? permission
+    : [permission];
+
+  return roles.some((role) =>
+    role.permissions.some((perm) => permissionsToCheck.includes(perm))
+  );
+};
+
+const isFatalDisconnect = (
+  info: TDisconnectInfo | undefined
+): info is TDisconnectInfo =>
+  !!info &&
+  (!info.wasClean ||
+    info.code === DisconnectCode.KICKED ||
+    info.code === DisconnectCode.BANNED ||
+    info.code === DisconnectCode.SERVER_SHUTDOWN);
+
+const forEachSignedFile = (
+  {
+    users,
+    emojis,
+    messagesMap
+  }: {
+    users: readonly TJoinedPublicUser[];
+    emojis: readonly TJoinedEmoji[];
+    messagesMap: Record<string, readonly TJoinedMessage[]>;
+  },
+  callback: (file: TFile) => void
+) => {
+  const visit = (file: TFile | null) => {
+    if (file?._accessToken) {
+      callback(file);
+    }
+  };
+
+  users.forEach(({ avatar, banner }) => {
+    visit(avatar);
+    visit(banner);
+  });
+
+  emojis.forEach(({ file }) => visit(file));
+
+  Object.values(messagesMap).forEach((messages) => {
+    messages.forEach(({ files, reactions }) => {
+      files.forEach(visit);
+      reactions.forEach(({ file }) => visit(file));
+    });
+  });
+};
+
 export {
   canViewChannel,
+  forEachSignedFile,
   getConversationKey,
   getMessageConversation,
   hasUnreadMentionInMessages,
+  isFatalDisconnect,
   mergeMessagesChronologically,
+  rolesCan,
   upsertDirectMessage,
   upsertFollowedThread
 };

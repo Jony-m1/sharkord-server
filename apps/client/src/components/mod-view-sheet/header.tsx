@@ -22,7 +22,7 @@ const closeModView = () => setModViewOpen(false);
 const Header = memo(() => {
   const { t } = useTranslation('settings');
   const ownUserId = useOwnUserId();
-  const { user, refetch } = useModViewContext();
+  const { user, refetch, sharedIp } = useModViewContext();
   const status = useUserStatus(user.id);
   const userRoles = useUserRoles(user.id);
   const isDeletedUser = user.identity === DELETED_USER_IDENTITY_AND_NAME;
@@ -30,7 +30,8 @@ const Header = memo(() => {
   const { kick, ban, unban, removeRole } = useModerationActions({
     userId: user.id,
     isDeleted: isDeletedUser,
-    onChange: refetch
+    onChange: refetch,
+    sharedIp
   });
 
   const handleDeleteClick = useCallback(() => {

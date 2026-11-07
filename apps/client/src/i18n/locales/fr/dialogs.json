@@ -93,5 +93,11 @@
   "pluginInstallDocsNote": "Pour plus de details, consultez la documentation a l'adresse :",
   "pluginInstallConfirmBtn": "Installer le plugin",
   "pluginInstallConfirmCountdown": "Attendre ({{seconds}}s)",
-  "searchTruncated": "Seuls les résultats les plus récents sont affichés. Affinez votre recherche pour la restreindre."
+  "searchTruncated": "Seuls les résultats les plus récents sont affichés. Affinez votre recherche pour la restreindre.",
+  "screenShareTitle": "Partager votre écran",
+  "screenShareMessage": "Vous choisirez ensuite l'écran ou la fenêtre à partager.",
+  "shareSystemAudio": "Partager le son du système",
+  "shareSystemAudioAllNote": "Sharkord partage tout le son joué sur votre ordinateur, même si vous ne choisissez qu'une seule fenêtre. Coupez le son de ce que les autres ne doivent pas entendre.",
+  "additionalScreenShareSettings": "Paramètres supplémentaires du partage d'écran",
+  "screenShareConfirm": "Continuer"
 }

@@ -5,10 +5,8 @@ import { useSelector } from 'react-redux';
 import {
   appLoadingSelector,
   autoJoinLastChannelSelector,
-  browserNotificationsForDmsSelector,
-  browserNotificationsForMentionsSelector,
-  browserNotificationsForRepliesSelector,
-  browserNotificationsSelector,
+  convertAsciiEmojiSelector,
+  freezeAnimatedAvatarsSelector,
   hotkeysEnabledSelector,
   isAutoConnectingSelector,
   isChannelMutedSelector,
@@ -21,6 +19,11 @@ import {
   modViewOpenSelector,
   modViewUserIdSelector,
   notificationSoundsSelector,
+  notifyAllMessagesSelector,
+  notifyDmsSelector,
+  notifyMentionsOnlySelector,
+  notifyPluginsSelector,
+  notifyRepliesSelector,
   pluginSlotDebugSelector,
   pushToTalkSelectedSelector,
   selectedDmChannelIdSelector,
@@ -53,6 +56,12 @@ export const useIsMembersDrawerOpen = () =>
 export const useAutoJoinLastChannel = () =>
   useSelector(autoJoinLastChannelSelector);
 
+export const useFreezeAnimatedAvatars = () =>
+  useSelector(freezeAnimatedAvatarsSelector);
+
+export const useConvertAsciiEmoji = () =>
+  useSelector(convertAsciiEmojiSelector);
+
 export const useHotkeysEnabled = () => useSelector(hotkeysEnabledSelector);
 
 export const usePushToTalkActive = () => {
@@ -69,20 +78,20 @@ export const useSelectedDmChannelId = () =>
 
 export const useSelectedThread = () => useSelector(selectedThreadSelector);
 
-export const useBrowserNotifications = () =>
-  useSelector(browserNotificationsSelector);
+export const useNotifyAllMessages = () =>
+  useSelector(notifyAllMessagesSelector);
 
-export const useBrowserNotificationsForMentions = () =>
-  useSelector(browserNotificationsForMentionsSelector);
+export const useNotifyMentionsOnly = () =>
+  useSelector(notifyMentionsOnlySelector);
 
-export const useBrowserNotificationsForDms = () =>
-  useSelector(browserNotificationsForDmsSelector);
+export const useNotifyDms = () => useSelector(notifyDmsSelector);
 
 export const useMessageJumpTarget = () =>
   useSelector(messageJumpTargetSelector);
 
-export const useBrowserNotificationsForReplies = () =>
-  useSelector(browserNotificationsForRepliesSelector);
+export const useNotifyReplies = () => useSelector(notifyRepliesSelector);
+
+export const useNotifyPlugins = () => useSelector(notifyPluginsSelector);
 
 export const usePluginSlotDebug = () => useSelector(pluginSlotDebugSelector);
 

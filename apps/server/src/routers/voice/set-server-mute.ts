@@ -1,21 +1,16 @@
 import { Permission } from '@sharkord/shared';
 import { z } from 'zod';
-import { config } from '../../config';
 import { getPublicUserById } from '../../db/queries/users';
 import { assertCanActOnUser } from '../../helpers/assert-can-act-on-user';
 import { isInHiddenVoiceCall } from '../../helpers/is-in-hidden-voice-call';
 import { setVoiceServerMute } from '../../helpers/voice-moderation';
 import { logger } from '../../logger';
 import { invariant } from '../../utils/invariant';
-import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
+import { protectedProcedure } from '../../utils/trpc';
 
 // the target does not have to be in a call: the mute belongs to the user, not the call, so it
 // survives a leave and a rejoin, and lifting it has to work after they left
-const setServerMuteRoute = rateLimitedProcedure(protectedProcedure, {
-  maxRequests: config.rateLimiters.moveMembers.maxRequests,
-  windowMs: config.rateLimiters.moveMembers.windowMs,
-  logLabel: 'setServerMute'
-})
+const setServerMuteRoute = protectedProcedure
   .input(
     z.object({
       userId: z.number().int().positive(),

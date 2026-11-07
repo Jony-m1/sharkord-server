@@ -1,7 +1,6 @@
-import { SettingsSection } from '@/components/server-screens/settings-shell/section';
 import { useModViewOpen } from '@/features/app/hooks';
 import { useAdminUsers } from '@/features/server/admin/hooks';
-import { LoadingCard } from '@sharkord/ui';
+import { LoadingCard, SettingsSection } from '@sharkord/ui';
 import { memo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UsersTable } from './users-table';

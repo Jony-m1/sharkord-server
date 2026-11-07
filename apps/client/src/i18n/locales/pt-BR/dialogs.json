@@ -93,5 +93,11 @@
   "pluginInstallDocsNote": "Para mais detalhes, leia a documentação em:",
   "pluginInstallConfirmBtn": "Instalar Plugin",
   "pluginInstallConfirmCountdown": "Aguarde ({{seconds}}s)",
-  "searchTruncated": "Mostrando apenas as correspondências mais recentes. Refine sua busca para restringi-la."
+  "searchTruncated": "Mostrando apenas as correspondências mais recentes. Refine sua busca para restringi-la.",
+  "screenShareTitle": "Compartilhar a tela",
+  "screenShareMessage": "Em seguida você vai escolher a tela ou janela para compartilhar.",
+  "shareSystemAudio": "Compartilhar o áudio do sistema",
+  "shareSystemAudioAllNote": "O Sharkord compartilha todo o áudio tocando no seu computador, mesmo que você escolha só uma janela. Silencie o que não quiser que os outros ouçam.",
+  "additionalScreenShareSettings": "Configurações adicionais de compartilhamento de tela",
+  "screenShareConfirm": "Continuar"
 }
