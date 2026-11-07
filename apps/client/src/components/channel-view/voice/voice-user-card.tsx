@@ -69,6 +69,10 @@ const VoiceUserCard = memo(
     const { devices } = useDevices();
     const isOwnUser = useIsOwnUser(userId);
     const isAfk = useIsUserAfk(userId);
+    // away locks the headphones and the mic, so the AFK badge says it alone
+    const showsMicMuted =
+      !isAfk && voiceUser.state.micMuted && !voiceUser.state.soundMuted;
+    const showsDeafened = !isAfk && voiceUser.state.soundMuted;
     const showUserBanners = useShowUserBannersInVoice();
     const webRtcSimulcastEnabled = useWebRtcSimulcastEnabled();
     const { isSimulcastConsumer } = useVoice();
@@ -217,15 +221,15 @@ const VoiceUserCard = memo(
             className={cn(
               cardBadgeClass(isCompact),
               !(isAfk && hasVideoStream) &&
-                !voiceUser.state.micMuted &&
-                !voiceUser.state.soundMuted &&
+                !showsMicMuted &&
+                !showsDeafened &&
                 !voiceUser.state.webcamEnabled &&
                 !voiceUser.state.sharingScreen &&
                 'hidden group-hover/voice-stage:inline-flex pointer-coarse:inline-flex'
             )}
           >
             {isAfk && hasVideoStream && <AfkBadge />}
-            {voiceUser.state.micMuted && !voiceUser.state.soundMuted && (
+            {showsMicMuted && (
               <span title={micTitle}>
                 <MicOff
                   className={cn(
@@ -238,7 +242,7 @@ const VoiceUserCard = memo(
                 />
               </span>
             )}
-            {voiceUser.state.soundMuted && (
+            {showsDeafened && (
               <HeadphoneOff
                 className="text-red-400/80 size-3"
                 fill="currentColor"

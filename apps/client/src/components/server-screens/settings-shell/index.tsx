@@ -5,6 +5,7 @@ import { usePreventExit } from '@/hooks/use-prevent-exit';
 import { SettingsLayout, type TSettingsEntry } from '@sharkord/ui';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ClientVersion } from './client-version';
 import { SettingsFormContext, type TSettingsFormHandle } from './context';
 import { SaveBar } from './save-bar';
 
@@ -105,6 +106,7 @@ const SettingsShell = memo(
           }
         >
           {selectedEntry?.content}
+          <ClientVersion />
         </SettingsLayout>
       </SettingsFormContext.Provider>
     );

@@ -36,72 +36,39 @@ describe('isOwnProducerEvent', () => {
 describe('getAfkDeafenChange', () => {
   test('should deafen when going away', () => {
     expect(
-      getAfkDeafenChange({
-        wasAfk: false,
-        isAfk: true,
-        soundMuted: false,
-        deafenedByAfk: false
-      })
+      getAfkDeafenChange({ wasAfk: false, isAfk: true, soundMuted: false })
     ).toBe('deafen');
   });
 
-  test('should undeafen when coming back after going away deafened you', () => {
+  test('should undeafen when coming back', () => {
     expect(
-      getAfkDeafenChange({
-        wasAfk: true,
-        isAfk: false,
-        soundMuted: true,
-        deafenedByAfk: true
-      })
+      getAfkDeafenChange({ wasAfk: true, isAfk: false, soundMuted: true })
     ).toBe('undeafen');
   });
 
-  test('should leave someone who was already deafened deafened on both ends', () => {
+  // AFK locks the headphones, so coming back hands them back even to someone who was
+  // deafened before going away
+  test('should undeafen on coming back someone who was deafened before going away', () => {
     expect(
-      getAfkDeafenChange({
-        wasAfk: false,
-        isAfk: true,
-        soundMuted: true,
-        deafenedByAfk: false
-      })
+      getAfkDeafenChange({ wasAfk: false, isAfk: true, soundMuted: true })
     ).toBeUndefined();
     expect(
-      getAfkDeafenChange({
-        wasAfk: true,
-        isAfk: false,
-        soundMuted: true,
-        deafenedByAfk: false
-      })
-    ).toBeUndefined();
+      getAfkDeafenChange({ wasAfk: true, isAfk: false, soundMuted: true })
+    ).toBe('undeafen');
   });
 
-  test('should do nothing on coming back when you undeafened yourself while away', () => {
+  test('should do nothing on coming back when nothing is deafened', () => {
     expect(
-      getAfkDeafenChange({
-        wasAfk: true,
-        isAfk: false,
-        soundMuted: false,
-        deafenedByAfk: false
-      })
+      getAfkDeafenChange({ wasAfk: true, isAfk: false, soundMuted: false })
     ).toBeUndefined();
   });
 
   test('should do nothing while the AFK status stays the same', () => {
     expect(
-      getAfkDeafenChange({
-        wasAfk: true,
-        isAfk: true,
-        soundMuted: false,
-        deafenedByAfk: false
-      })
+      getAfkDeafenChange({ wasAfk: true, isAfk: true, soundMuted: false })
     ).toBeUndefined();
     expect(
-      getAfkDeafenChange({
-        wasAfk: false,
-        isAfk: false,
-        soundMuted: true,
-        deafenedByAfk: true
-      })
+      getAfkDeafenChange({ wasAfk: false, isAfk: false, soundMuted: true })
     ).toBeUndefined();
   });
 });

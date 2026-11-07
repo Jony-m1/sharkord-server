@@ -113,10 +113,12 @@ const UserControl = memo(() => {
           )}
           onClick={toggleMic}
           title={micTitle}
+          data-testid={TestId.USER_CONTROL_MIC}
           disabled={
             !channelCan(ChannelPermission.SPEAK) ||
             ownVoiceState.soundMuted ||
-            ownVoiceState.serverMuted
+            ownVoiceState.serverMuted ||
+            isAfk
           }
         >
           {ownVoiceState.micMuted ? (
@@ -137,6 +139,8 @@ const UserControl = memo(() => {
           )}
           onClick={toggleSound}
           title={ownVoiceState.soundMuted ? t('undeafen') : t('deafen')}
+          data-testid={TestId.USER_CONTROL_DEAFEN}
+          disabled={isAfk}
         >
           {ownVoiceState.soundMuted ? (
             <HeadphoneOff className="h-4 w-4" />

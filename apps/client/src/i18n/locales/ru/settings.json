@@ -698,5 +698,7 @@
   "loginLockoutAttemptsUnit": "неудачных попыток",
   "loginLockoutWindowLabel": "Считать в течение",
   "loginLockoutBlockLabel": "Первая блокировка длится",
-  "loginLockoutMaxBlockLabel": "Самая долгая блокировка"
+  "loginLockoutMaxBlockLabel": "Самая долгая блокировка",
+  "clientVersion": "Сервер {{version}}",
+  "desktopAppVersion": "Continental {{version}}"
 }

@@ -689,5 +689,7 @@
   "loginLockoutAttemptsUnit": "failed attempts",
   "loginLockoutWindowLabel": "Counted within",
   "loginLockoutBlockLabel": "First block lasts",
-  "loginLockoutMaxBlockLabel": "Longest block"
+  "loginLockoutMaxBlockLabel": "Longest block",
+  "clientVersion": "Server {{version}}",
+  "desktopAppVersion": "Continental {{version}}"
 }

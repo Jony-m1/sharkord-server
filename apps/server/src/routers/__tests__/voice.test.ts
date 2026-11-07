@@ -15,6 +15,7 @@ import {
   rolePermissions,
   roles
 } from '../../db/schema';
+import { setAfk } from '../../helpers/afk';
 import { getRateLimit } from '../../helpers/rate-limits';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { pubsub } from '../../utils/pubsub';
@@ -900,6 +901,52 @@ describe('voice router', () => {
         ).rejects.toThrow('You were muted by a moderator.');
 
         expect(runtime.getUserState(2).micMuted).toBe(true);
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should refuse unmuting or undeafening while the user is AFK', async () => {
+      const { runtime, caller } = await joinVoiceChannelTwo(2);
+
+      await caller.voice.updateState({ soundMuted: true, micMuted: true });
+      await setAfk(2, true);
+
+      try {
+        await expect(
+          caller.voice.updateState({ soundMuted: false })
+        ).rejects.toThrow(
+          'You are AFK. Come back first to unmute or undeafen.'
+        );
+        await expect(
+          caller.voice.updateState({ micMuted: false })
+        ).rejects.toThrow(
+          'You are AFK. Come back first to unmute or undeafen.'
+        );
+
+        expect(runtime.getUserState(2)).toMatchObject({
+          soundMuted: true,
+          micMuted: true
+        });
+      } finally {
+        await runtime.destroy();
+      }
+    });
+
+    test('should let an AFK user deafen, and undeafen once back', async () => {
+      const { runtime, caller } = await joinVoiceChannelTwo(2);
+
+      await setAfk(2, true);
+
+      try {
+        await caller.voice.updateState({ soundMuted: true, micMuted: true });
+
+        expect(runtime.getUserState(2).soundMuted).toBe(true);
+
+        await setAfk(2, false);
+        await caller.voice.updateState({ soundMuted: false });
+
+        expect(runtime.getUserState(2).soundMuted).toBe(false);
       } finally {
         await runtime.destroy();
       }

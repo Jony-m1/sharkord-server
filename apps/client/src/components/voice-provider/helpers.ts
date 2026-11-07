@@ -215,16 +215,14 @@ type TAfkDeafenStep = {
   wasAfk: boolean;
   isAfk: boolean;
   soundMuted: boolean;
-  deafenedByAfk: boolean;
 };
 
-// going away deafens you unless you already were, and coming back only undeafens what going
-// away deafened, so someone who was deafened on purpose stays that way
+// going away deafens you, and coming back undeafens you, whether or not you were deafened
+// before: AFK locks the headphones, so coming back is the moment you get them back
 const getAfkDeafenChange = ({
   wasAfk,
   isAfk,
-  soundMuted,
-  deafenedByAfk
+  soundMuted
 }: TAfkDeafenStep): 'deafen' | 'undeafen' | undefined => {
   if (wasAfk === isAfk) return undefined;
 
@@ -232,7 +230,7 @@ const getAfkDeafenChange = ({
     return soundMuted ? undefined : 'deafen';
   }
 
-  return deafenedByAfk && soundMuted ? 'undeafen' : undefined;
+  return soundMuted ? 'undeafen' : undefined;
 };
 
 const getSimulcastCodec = (

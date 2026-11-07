@@ -689,5 +689,7 @@
   "loginLockoutAttemptsUnit": "neúspěšných pokusech",
   "loginLockoutWindowLabel": "Počítáno během",
   "loginLockoutBlockLabel": "První blokace trvá",
-  "loginLockoutMaxBlockLabel": "Nejdelší blokace"
+  "loginLockoutMaxBlockLabel": "Nejdelší blokace",
+  "clientVersion": "Server {{version}}",
+  "desktopAppVersion": "Continental {{version}}"
 }

@@ -12,30 +12,16 @@ type TUseAfkDeafenParams = {
 const useAfkDeafen = ({ soundMuted, setSoundMuted }: TUseAfkDeafenParams) => {
   const ownUserId = useOwnUserId();
   const isAfk = useIsUserAfk(ownUserId ?? null);
-  const previousRef = useRef({ isAfk, soundMuted });
-  const deafenedByAfkRef = useRef(false);
+  const wasAfkRef = useRef(isAfk);
 
   useEffect(() => {
-    const { isAfk: wasAfk, soundMuted: wasSoundMuted } = previousRef.current;
+    const wasAfk = wasAfkRef.current;
 
-    previousRef.current = { isAfk, soundMuted };
+    wasAfkRef.current = isAfk;
 
-    // undeafening by hand while away hands the headphones back to you, so coming back
-    // later does not touch a deafen you chose yourself
-    if (wasSoundMuted && !soundMuted) {
-      deafenedByAfkRef.current = false;
-    }
-
-    const change = getAfkDeafenChange({
-      wasAfk,
-      isAfk,
-      soundMuted,
-      deafenedByAfk: deafenedByAfkRef.current
-    });
+    const change = getAfkDeafenChange({ wasAfk, isAfk, soundMuted });
 
     if (!change) return;
-
-    deafenedByAfkRef.current = change === 'deafen';
 
     // toggleSound behind it reports its own failures with a toast and rolls back
     setSoundMuted(change === 'deafen');

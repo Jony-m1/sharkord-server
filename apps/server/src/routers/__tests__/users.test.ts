@@ -20,7 +20,6 @@ import {
   login,
   uploadFile
 } from '../../__tests__/helpers';
-import { getRateLimit } from '../../helpers/rate-limits';
 import { tdb } from '../../__tests__/setup';
 import { getUserByToken } from '../../db/queries/users';
 import {
@@ -36,6 +35,7 @@ import {
   userRoles,
   users
 } from '../../db/schema';
+import { getRateLimit } from '../../helpers/rate-limits';
 import {
   startOnlineSession,
   startVoiceSession

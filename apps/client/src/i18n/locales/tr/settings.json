@@ -689,5 +689,7 @@
   "loginLockoutAttemptsUnit": "başarısız deneme",
   "loginLockoutWindowLabel": "Sayım süresi",
   "loginLockoutBlockLabel": "İlk engel süresi",
-  "loginLockoutMaxBlockLabel": "En uzun engel"
+  "loginLockoutMaxBlockLabel": "En uzun engel",
+  "clientVersion": "Sunucu {{version}}",
+  "desktopAppVersion": "Continental {{version}}"
 }

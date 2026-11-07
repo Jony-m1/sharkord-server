@@ -3,6 +3,7 @@ import { usePushToTalkActive } from '@/features/app/hooks';
 import { requestScreenShareOptions } from '@/features/dialogs/actions';
 import { useCurrentVoiceChannelId } from '@/features/server/channels/hooks';
 import { SoundType } from '@/features/server/types';
+import { useIsUserAfk, useOwnUserId } from '@/features/server/users/hooks';
 import { updateOwnVoiceState } from '@/features/server/voice/actions';
 import { useOwnVoiceState } from '@/features/server/voice/hooks';
 import { voiceLogger } from '@/helpers/browser-logger';
@@ -63,6 +64,9 @@ const useVoiceControls = ({
   const ownVoiceState = useOwnVoiceState();
   const currentVoiceChannelId = useCurrentVoiceChannelId();
   const isPushToTalk = usePushToTalkActive();
+  const ownUserId = useOwnUserId();
+  // away means deafened and muted until you come back, whichever button or keybind is used
+  const isAfk = useIsUserAfk(ownUserId ?? null);
 
   const isTogglingMic = useRef(false);
   const isTogglingSound = useRef(false);
@@ -77,7 +81,7 @@ const useVoiceControls = ({
     if (isTogglingMic.current) return;
     const nextMicMuted = !ownVoiceState.micMuted;
 
-    if (ownVoiceState.soundMuted && !nextMicMuted) {
+    if ((ownVoiceState.soundMuted || isAfk) && !nextMicMuted) {
       return;
     }
 
@@ -141,14 +145,18 @@ const useVoiceControls = ({
     startMicStream,
     currentVoiceChannelId,
     localAudioStream,
-    isPushToTalk
+    isPushToTalk,
+    isAfk
   ]);
 
   const toggleSound = useCallback(async () => {
     if (isTogglingSound.current) return;
-    isTogglingSound.current = true;
 
     const nextSoundMuted = !ownVoiceState.soundMuted;
+
+    if (isAfk && !nextSoundMuted) return;
+
+    isTogglingSound.current = true;
     const trpc = getTRPCClient();
 
     voiceLogger.info('sound: toggle requested', { soundMuted: nextSoundMuted });
@@ -224,7 +232,8 @@ const useVoiceControls = ({
     ownVoiceState.serverMuted,
     currentVoiceChannelId,
     localAudioStream,
-    startMicStream
+    startMicStream,
+    isAfk
   ]);
 
   const toggleWebcam = useCallback(async () => {

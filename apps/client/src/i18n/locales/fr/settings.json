@@ -689,5 +689,7 @@
   "loginLockoutAttemptsUnit": "tentatives échouées",
   "loginLockoutWindowLabel": "Comptées sur",
   "loginLockoutBlockLabel": "Le premier blocage dure",
-  "loginLockoutMaxBlockLabel": "Blocage le plus long"
+  "loginLockoutMaxBlockLabel": "Blocage le plus long",
+  "clientVersion": "Serveur {{version}}",
+  "desktopAppVersion": "Continental {{version}}"
 }

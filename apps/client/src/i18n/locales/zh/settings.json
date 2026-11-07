@@ -689,5 +689,7 @@
   "loginLockoutAttemptsUnit": "次失败尝试",
   "loginLockoutWindowLabel": "统计时长",
   "loginLockoutBlockLabel": "首次封锁时长",
-  "loginLockoutMaxBlockLabel": "最长封锁时长"
+  "loginLockoutMaxBlockLabel": "最长封锁时长",
+  "clientVersion": "服务器 {{version}}",
+  "desktopAppVersion": "Continental {{version}}"
 }

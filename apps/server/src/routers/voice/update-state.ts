@@ -7,6 +7,7 @@ import {
 import { z } from 'zod';
 import { publishVoicePresence } from '../../db/publishers';
 import { channelUserCan } from '../../db/queries/channels';
+import { isAfk } from '../../helpers/afk';
 import { getCurrentVoiceRuntime } from '../../helpers/get-current-voice-runtime';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
@@ -67,6 +68,18 @@ const updateVoiceStateRoute = protectedProcedure
       {
         code: 'FORBIDDEN',
         message: 'You were muted by a moderator.'
+      }
+    );
+
+    // AFK deafens you until you come back; the client locks its buttons, this keeps an older
+    // client or a second session from getting round it
+    invariant(
+      !isAfk(ctx.user.id) ||
+        (validatedInput.micMuted !== false &&
+          validatedInput.soundMuted !== false),
+      {
+        code: 'FORBIDDEN',
+        message: 'You are AFK. Come back first to unmute or undeafen.'
       }
     );
 

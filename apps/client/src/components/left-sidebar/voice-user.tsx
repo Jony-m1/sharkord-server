@@ -94,26 +94,32 @@ const VoiceUser = memo(
             <VolumeX className="h-3 w-3 text-red-500" />
           )}
 
-          <div title={micTitle}>
-            {user.state.micMuted ? (
-              <MicOff
-                className={cn(
-                  'h-3 w-3',
-                  user.state.serverMuted ? 'text-orange-500' : 'text-red-500'
+          {!isAfk && (
+            <>
+              <div title={micTitle}>
+                {user.state.micMuted ? (
+                  <MicOff
+                    className={cn(
+                      'h-3 w-3',
+                      user.state.serverMuted
+                        ? 'text-orange-500'
+                        : 'text-red-500'
+                    )}
+                  />
+                ) : (
+                  <Mic className="h-3 w-3 text-green-500" />
                 )}
-              />
-            ) : (
-              <Mic className="h-3 w-3 text-green-500" />
-            )}
-          </div>
+              </div>
 
-          <div>
-            {user.state.soundMuted ? (
-              <HeadphoneOff className="h-3 w-3 text-red-500" />
-            ) : (
-              <Headphones className="h-3 w-3 text-green-500" />
-            )}
-          </div>
+              <div>
+                {user.state.soundMuted ? (
+                  <HeadphoneOff className="h-3 w-3 text-red-500" />
+                ) : (
+                  <Headphones className="h-3 w-3 text-green-500" />
+                )}
+              </div>
+            </>
+          )}
 
           {user.state.webcamEnabled && (
             <Video className="h-3 w-3 text-blue-500" />

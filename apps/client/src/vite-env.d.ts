@@ -29,6 +29,8 @@ declare global {
     __SHARKORD_REACT_JSX_DEV__: typeof import('react/jsx-dev-runtime');
     __SHARKORD_REACT_DOM__: typeof import('react-dom');
     __SHARKORD_REACT_DOM_CLIENT__: typeof import('react-dom/client');
+    // set by the Continental desktop app when it loads this page
+    __continentalVersion?: string;
   }
 
   const VITE_APP_VERSION: string;

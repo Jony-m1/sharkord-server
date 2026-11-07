@@ -1,6 +1,7 @@
 import { Protect } from '@/components/protect';
 import { useIsCurrentVoiceChannelSelected } from '@/features/server/channels/hooks';
 import { useCan, useChannelCan } from '@/features/server/hooks';
+import { useIsUserAfk, useOwnUserId } from '@/features/server/users/hooks';
 import { leaveVoice } from '@/features/server/voice/actions';
 import {
   useAlwaysShowVoiceControls,
@@ -38,6 +39,8 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
     isScreenShareSupported
   } = useVoice();
   const ownVoiceState = useOwnVoiceState();
+  const ownUserId = useOwnUserId();
+  const isAfk = useIsUserAfk(ownUserId ?? null);
   const can = useCan();
   const channelCan = useChannelCan(channelId);
   const alwaysShowControls = useAlwaysShowVoiceControls();
@@ -90,7 +93,8 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
           disabled={
             !permissions.canSpeak ||
             ownVoiceState.soundMuted ||
-            ownVoiceState.serverMuted
+            ownVoiceState.serverMuted ||
+            isAfk
           }
         />
 
@@ -102,6 +106,7 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
           disabledIcon={Headphones}
           enabledClassName="bg-red-500/20 text-red-500 hover:bg-red-500/30 hover:text-red-500"
           onClick={toggleSound}
+          disabled={isAfk}
         />
 
         <div className="h-8 border-r-2 border-border" />
